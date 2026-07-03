@@ -573,7 +573,7 @@ kolTransaksi.orderBy("tanggal", "desc").onSnapshot((snapshot)=>{
   render();
 }, (err)=>{
   console.error(err);
-  showStatus("Gagal terhubung ke Firebase. Cek firebaseConfig atau koneksi internet.");
+  showStatus("Gagal terhubung ke Firebase (" + err.code + "): " + err.message);
 });
 </script>
 </body>
