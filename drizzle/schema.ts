@@ -46,6 +46,16 @@ export const financeWorkspaces = mysqlTable("finance_workspaces", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
+export const financeAccounts = mysqlTable("finance_accounts", {
+  id: int("id").autoincrement().primaryKey(),
+  workspaceId: int("workspaceId").notNull(),
+  name: varchar("name", { length: 120 }).notNull(),
+  type: mysqlEnum("type", ["cash", "bank", "card", "investment"]).notNull(),
+  balance: int("balance").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
 export const financeTransactions = mysqlTable("finance_transactions", {
   id: int("id").autoincrement().primaryKey(),
   workspaceId: int("workspaceId").notNull(),

@@ -39,7 +39,7 @@ import {
 } from "lucide-react";
 
 type Workspace = "personal" | "business";
-type Page = "overview" | "transactions" | "budget" | "accounts" | "reports" | "insights" | "settings";
+type Page = "overview" | "transactions" | "budget" | "bills" | "accounts" | "reports" | "insights" | "settings";
 
 type Transaction = {
   merchant: string;
@@ -87,6 +87,7 @@ const navItems: { id: Page; label: string; icon: ReactNode }[] = [
   { id: "overview", label: "Overview", icon: <LayoutDashboard size={18} /> },
   { id: "transactions", label: "Transactions", icon: <Receipt size={18} /> },
   { id: "budget", label: "Budget", icon: <Target size={18} /> },
+  { id: "bills", label: "Tagihan", icon: <CalendarDays size={18} /> },
   { id: "accounts", label: "Accounts", icon: <WalletCards size={18} /> },
   { id: "reports", label: "Reports", icon: <BarChart3 size={18} /> },
   { id: "insights", label: "Insights", icon: <Lightbulb size={18} /> },
@@ -165,7 +166,7 @@ function ProgressBar({ value, color = "mint" }: { value: number; color?: string 
   return <div className="progress-track"><span className={`progress-fill progress-fill--${color}`} style={{ width: `${Math.min(value, 100)}%` }} /></div>;
 }
 
-function Overview({ data, workspace, onAddTransaction, onNotice }: { data: WorkspaceData; workspace: Workspace; onAddTransaction: () => void; onNotice: (message: string) => void }) {
+function Overview({ data, workspace, onAddTransaction, onImport, onNotice }: { data: WorkspaceData; workspace: Workspace; onAddTransaction: () => void; onImport: () => void; onNotice: (message: string) => void }) {
   const [range, setRange] = useState("6 bulan");
   const rangeOptions = ["6 bulan", "12 bulan", "Tahun ini"];
   const usage = Math.round((data.budgetUsed / data.budgetTotal) * 100);
@@ -174,7 +175,7 @@ function Overview({ data, workspace, onAddTransaction, onNotice }: { data: Works
     <div className="page-stack">
       <section className="welcome-row">
         <div><p className="eyebrow eyebrow--lime">{workspace === "personal" ? "PERSONAL FINANCE" : "BUSINESS FINANCE"}</p><h1>{data.greeting}</h1><p className="lede">{data.description}</p></div>
-        <div className="welcome-actions"><button className="button button--secondary" onClick={() => onNotice("File siap diimpor — pilih CSV atau XLSX dari perangkatmu.")}><Upload size={16} /> Import data</button><button className="button button--primary" onClick={onAddTransaction}><Plus size={17} /> Transaksi baru</button></div>
+        <div className="welcome-actions"><button className="button button--secondary" onClick={onImport}><Upload size={16} /> Import CSV</button><button className="button button--primary" onClick={onAddTransaction}><Plus size={17} /> Transaksi baru</button></div>
       </section>
 
       <section className="metric-grid">
@@ -236,6 +237,7 @@ function PagePlaceholder({ page, data, onNotice }: { page: Page; data: Workspace
   const config: Record<Exclude<Page, "overview">, { eyebrow: string; title: string; description: string; icon: ReactNode }> = {
     transactions: { eyebrow: "ACTIVITY CENTER", title: "Semua transaksi", description: "Cari, filter, dan rapikan seluruh pergerakan uangmu.", icon: <Receipt size={22} /> },
     budget: { eyebrow: "PLAN AHEAD", title: "Budget & goals", description: "Buat batas yang realistis dan lihat progresmu tanpa menebak.", icon: <Target size={22} /> },
+    bills: { eyebrow: "UPCOMING", title: "Tagihan", description: "Catat tagihan dan kelola status pembayarannya.", icon: <CalendarDays size={22} /> },
     accounts: { eyebrow: "YOUR MONEY", title: "Akun & aset", description: "Satu tempat untuk rekening, kartu, tabungan, dan investasi.", icon: <WalletCards size={22} /> },
     reports: { eyebrow: "MAKE IT CLEAR", title: "Reports", description: "Ubah data harian menjadi cerita yang membantu keputusan.", icon: <BarChart3 size={22} /> },
     insights: { eyebrow: "SMARTER MOVES", title: "Insights", description: "Temukan pola kecil yang bisa membuat dampak besar.", icon: <Lightbulb size={22} /> },
@@ -353,6 +355,7 @@ function FinanceApp({ onLogout, liveData, onCreateTransaction, profileName }: { 
   const filteredTransactions = useMemo(() => data.transactions.filter((transaction) => `${transaction.merchant} ${transaction.category}`.toLowerCase().includes(search.toLowerCase())), [data, search]);
   const announce = (message: string) => { setNotice(message); window.setTimeout(() => setNotice(""), 3000); };
   const handleSave = async (input: TransactionInput) => { await onCreateTransaction(workspace, input); setShowModal(false); announce("Transaksi berhasil disimpan."); };
+  const handleImport = () => { const input = document.createElement("input"); input.type = "file"; input.accept = ".csv,text/csv"; input.onchange = () => { const file = input.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = async () => { const lines = String(reader.result ?? "").split(/\r?\n/).filter(Boolean); const rows = lines.slice(lines[0]?.toLowerCase().includes("type") ? 1 : 0); let imported = 0; for (const line of rows) { const [type, merchant, category, amount, occurredAt] = line.split(",").map(value => value.trim()); if ((type === "income" || type === "expense") && merchant && category && Number(amount) > 0 && occurredAt) { await onCreateTransaction(workspace, { type, merchant, category, amount: Number(amount), occurredAt }); imported += 1; } } announce(imported ? `${imported} transaksi berhasil diimpor.` : "Tidak ada baris CSV valid. Format: type,merchant,category,amount,occurredAt"); }; reader.readAsText(file); }; input.click(); };
 
   return <div className="app-shell">
     <aside className={`sidebar ${mobileMenu ? "sidebar--open" : ""}`}>
@@ -365,7 +368,7 @@ function FinanceApp({ onLogout, liveData, onCreateTransaction, profileName }: { 
 
     <main className="main-content">
       <header className="topbar"><div className="topbar-left"><button className="mobile-menu-button icon-button" onClick={() => setMobileMenu(true)} aria-label="Buka menu"><Menu size={20} /></button><div className="breadcrumb"><span>LynnZz Finance</span><ChevronRight size={14} /><strong>{navItems.find((item) => item.id === page)?.label ?? "Settings"}</strong></div></div><div className="topbar-actions"><label className="search-box"><Search size={17} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Cari transaksi..." aria-label="Cari transaksi" />{search && <button onClick={() => setSearch("")} aria-label="Hapus pencarian"><X size={14} /></button>}<kbd>⌘ K</kbd></label><button className="icon-button notification-button" onClick={() => announce("Belum ada notifikasi baru.")} aria-label="Notifikasi"><Bell size={18} /><span /></button><span className="topbar-avatar">{profileInitials}</span></div></header>
-      <div className="content-wrap">{page === "overview" ? <Overview data={data} workspace={workspace} onAddTransaction={() => setShowModal(true)} onNotice={announce} /> : page === "transactions" ? <div className="page-stack"><PagePlaceholder page={page} data={data} onNotice={announce} />{search && <section className="panel transactions-panel search-results"><div className="panel-heading"><div><p className="eyebrow">SEARCH RESULT</p><h2>{filteredTransactions.length} transaksi ditemukan</h2></div></div><TransactionTable transactions={filteredTransactions} /></section>}</div> : <PagePlaceholder page={page} data={data} onNotice={announce} />}</div>
+      <div className="content-wrap">{page === "overview" ? <Overview data={data} workspace={workspace} onAddTransaction={() => setShowModal(true)} onImport={handleImport} onNotice={announce} /> : page === "transactions" ? <div className="page-stack"><FunctionalPage page={page} data={data} workspace={workspace} onNotice={announce} onAddTransaction={() => setShowModal(true)} />{search && <section className="panel transactions-panel search-results"><div className="panel-heading"><div><p className="eyebrow">SEARCH RESULT</p><h2>{filteredTransactions.length} transaksi ditemukan</h2></div></div><TransactionTable transactions={filteredTransactions} /></section>}</div> : <FunctionalPage page={page} data={data} workspace={workspace} onNotice={announce} onAddTransaction={() => setShowModal(true)} />}</div>
     </main>
     {notice && <div className="toast"><CheckCircle2 size={17} /><span>{notice}</span><button onClick={() => setNotice("")} aria-label="Tutup notifikasi"><X size={14} /></button></div>}
     {showModal && <AddTransactionModal onClose={() => setShowModal(false)} onSave={handleSave} />}
@@ -391,3 +394,37 @@ function App() {
 }
 
 export default App;
+
+
+function FunctionalPage({ page, data, workspace, onNotice, onAddTransaction }: { page: Page; data: WorkspaceData; workspace: Workspace; onNotice: (message: string) => void; onAddTransaction: () => void }) {
+  const createBudget = trpc.finance.createBudget.useMutation();
+  const createAccount = trpc.finance.createAccount.useMutation();
+  const createBill = trpc.finance.createBill.useMutation();
+  const isPages = typeof window !== "undefined" && window.location.hostname.endsWith("github.io");
+  const addBudget = async () => {
+    if (isPages) return onNotice("Budget pada GitHub Pages membutuhkan mode server Preview agar tersimpan ke database.");
+    const name = window.prompt("Nama budget"); const amount = Number(window.prompt("Nominal budget (IDR)") || 0);
+    if (!name || !amount) return;
+    const start = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString(); const end = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString();
+    await createBudget.mutateAsync({ kind: workspace, name, amount, periodStart: start, periodEnd: end }); window.location.reload();
+  };
+  const addAccount = async () => {
+    if (isPages) return onNotice("Akun pada GitHub Pages membutuhkan mode server Preview agar tersimpan ke database.");
+    const name = window.prompt("Nama akun"); const balance = Number(window.prompt("Saldo awal (IDR)") || 0);
+    if (!name) return;
+    await createAccount.mutateAsync({ kind: workspace, name, balance, type: "bank" }); window.location.reload();
+  };
+  const addBill = async () => {
+    if (isPages) return onNotice("Tagihan pada GitHub Pages membutuhkan mode server Preview agar tersimpan ke database.");
+    const name = window.prompt("Nama tagihan"); const amount = Number(window.prompt("Jumlah tagihan (IDR)") || 0); const dueAt = window.prompt("Jatuh tempo (YYYY-MM-DD)") || "";
+    if (!name || !amount || !dueAt) return;
+    await createBill.mutateAsync({ kind: workspace, name, amount, dueAt: new Date(dueAt).toISOString() }); window.location.reload();
+  };
+  if (page === "transactions") return <div className="page-stack"><section className="subpage-hero"><div className="subpage-icon"><Receipt size={22} /></div><div><p className="eyebrow eyebrow--lime">ACTIVITY CENTER</p><h1>Semua transaksi</h1><p className="lede">Transaksi yang benar-benar tersimpan pada workspace {data.label}.</p></div><button className="button button--primary" onClick={onAddTransaction}><Plus size={17} /> Transaksi baru</button></section><section className="panel placeholder-main"><div className="panel-heading"><div><p className="eyebrow">{data.label.toUpperCase()}</p><h2>Riwayat transaksi</h2></div></div><TransactionTable transactions={data.transactions} /></section></div>;
+  if (page === "budget") return <div className="page-stack"><section className="subpage-hero"><div className="subpage-icon"><Target size={22} /></div><div><p className="eyebrow eyebrow--lime">PLAN AHEAD</p><h1>Budget & goals</h1><p className="lede">Buat batas pengeluaran yang disimpan ke workspace aktif.</p></div><button className="button button--primary" onClick={addBudget}><Plus size={17} /> Tambah budget</button></section><section className="panel"><div className="panel-heading"><div><p className="eyebrow">RINGKASAN</p><h2>{data.budgetTotal ? formatCompactIDR(data.budgetTotal) : "Belum ada budget"}</h2></div></div><div className="empty-state">{data.budgetTotal ? `Pengeluaran berjalan ${formatCompactIDR(data.budgetUsed)} dari total budget.` : "Belum ada budget tersimpan. Tambahkan budget pertama."}</div></section></div>;
+  if (page === "accounts") return <div className="page-stack"><section className="subpage-hero"><div className="subpage-icon"><WalletCards size={22} /></div><div><p className="eyebrow eyebrow--lime">YOUR MONEY</p><h1>Akun & aset</h1><p className="lede">Saldo diambil dari transaksi dan akun yang kamu simpan.</p></div><button className="button button--primary" onClick={addAccount}><Plus size={17} /> Tambah akun</button></section><section className="panel"><div className="panel-heading"><div><p className="eyebrow">NILAI BERSIH</p><h2>{formatCompactIDR(data.balance)}</h2></div></div><div className="empty-state">{data.hasData ? "Saldo dihitung dari data transaksi yang tersimpan." : "Belum ada akun atau transaksi tersimpan."}</div></section></div>;
+  if (page === "bills") return <div className="page-stack"><section className="subpage-hero"><div className="subpage-icon"><CalendarDays size={22} /></div><div><p className="eyebrow eyebrow--lime">UPCOMING</p><h1>Tagihan</h1><p className="lede">Daftar tagihan yang berasal dari workspace aktif.</p></div><button className="button button--primary" onClick={addBill}><Plus size={17} /> Tambah tagihan</button></section><section className="panel"><div className="panel-heading"><div><p className="eyebrow">TAGIHAN TERBUKA</p><h2>{data.bills.length ? formatCompactIDR(data.bills.reduce((sum, bill) => sum + bill.amount, 0)) : "Belum ada tagihan"}</h2></div></div>{data.bills.length ? data.bills.map(bill => <div className="bill-row" key={`${bill.name}-${bill.date}`}><span className="bill-icon bill-icon--mint"><CalendarDays size={17} /></span><div className="bill-detail"><strong>{bill.name}</strong><span>{bill.date}</span></div><strong className="bill-amount">{formatCompactIDR(bill.amount)}</strong></div>) : <div className="empty-state">Tambahkan tagihan pertama.</div>}</section></div>;
+  if (page === "reports") return <div className="page-stack"><section className="subpage-hero"><div className="subpage-icon"><BarChart3 size={22} /></div><div><p className="eyebrow eyebrow--lime">MAKE IT CLEAR</p><h1>Reports</h1><p className="lede">Laporan dihitung dari transaksi nyata, bukan dataset contoh.</p></div></section><section className="metric-grid"><MetricCard icon={<ArrowUpRight size={19} />} label="Pemasukan" value={formatCompactIDR(data.income)} helper="periode berjalan" trend={data.incomeChange} /><MetricCard icon={<ArrowDownRight size={19} />} label="Pengeluaran" value={formatCompactIDR(data.expenses)} helper="periode berjalan" trend={data.expenseChange} positive={false} accent="peach" /><MetricCard icon={<TrendingUp size={19} />} label="Net cash flow" value={formatCompactIDR(data.cashflow)} helper="periode berjalan" trend={data.cashflowChange} accent="lime" /></section><section className="panel chart-panel"><CashflowChart data={data.chart} income={data.chartIncome} labels={data.chartLabels} /></section></div>;
+  if (page === "insights") return <div className="page-stack"><section className="subpage-hero"><div className="subpage-icon"><Lightbulb size={22} /></div><div><p className="eyebrow eyebrow--lime">SMARTER MOVES</p><h1>Insights</h1><p className="lede">Temuan hanya muncul saat ada cukup transaksi untuk dianalisis.</p></div></section><section className="panel"><h2>{data.hasData ? `Saving rate ${data.savingRate}` : "Belum ada insight"}</h2><p className="lede">{data.hasData ? "Insight akan berkembang dari kategori pengeluaran dan cash flow yang kamu catat." : "Tambahkan transaksi nyata terlebih dahulu."}</p></section></div>;
+  return <div className="page-stack"><section className="subpage-hero"><div className="subpage-icon"><Settings2 size={22} /></div><div><p className="eyebrow eyebrow--lime">WORKSPACE</p><h1>Pengaturan</h1><p className="lede">Workspace aktif: {data.label}. Gunakan tombol profil untuk logout.</p></div></section><section className="panel"><div className="empty-state">Semua data milik akun ini dan disimpan berdasarkan workspace.</div></section></div>;
+}

@@ -7,3 +7,5 @@
 - [x] Modal transaksi menyimpan pemasukan/pengeluaran ke database pada mode server dan ke localStorage browser pada mode GitHub Pages; setelah disimpan, dashboard dimuat ulang dari data persistence.
 - [x] Migration database finance tersimpan dan endpoint finance mewajibkan session serta membatasi query berdasarkan workspace owner.
 - [ ] CRUD budget, akun, tagihan, import CSV, laporan, dan insight perlu dilanjutkan sebagai modul domain berikutnya; halaman yang belum memiliki data menampilkan empty state, bukan angka dummy.
+
+- [x] Navigasi modul tidak lagi berhenti pada placeholder/toast: transaksi, budget, akun, tagihan, laporan, insight, settings, dan import CSV memiliki alur fungsional atau empty state berbasis data.

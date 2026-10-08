@@ -55,10 +55,11 @@ export const appRouter = router({
     dashboard: protectedProcedure.input(z.object({ kind: z.enum(["personal", "business"]) })).query(async ({ ctx, input }) => {
       const workspace = await db.getFinanceWorkspace(ctx.user.id, input.kind);
       if (!workspace) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Workspace gagal dibuat." });
-      const [transactions, budgets, bills] = await Promise.all([
+      const [transactions, budgets, bills, accounts] = await Promise.all([
         db.listFinanceTransactions(workspace.id),
         db.listFinanceBudgets(workspace.id),
         db.listFinanceBills(workspace.id),
+        db.listFinanceAccounts(workspace.id),
       ]);
       const now = new Date();
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -67,7 +68,7 @@ export const appRouter = router({
       const expenses = monthTransactions.filter(item => item.type === "expense").reduce((sum, item) => sum + item.amount, 0);
       const categoryTotals = new Map<string, number>();
       monthTransactions.filter(item => item.type === "expense").forEach(item => categoryTotals.set(item.category, (categoryTotals.get(item.category) ?? 0) + item.amount));
-      return { workspace, transactions, budgets, bills, summary: { income, expenses, cashflow: income - expenses, balance: transactions.reduce((sum, item) => sum + (item.type === "income" ? item.amount : -item.amount), 0), categories: Array.from(categoryTotals, ([name, total]) => ({ name, total })).sort((a, b) => b.total - a.total) } };
+      return { workspace, transactions, budgets, bills, accounts, summary: { income, expenses, cashflow: income - expenses, balance: transactions.reduce((sum, item) => sum + (item.type === "income" ? item.amount : -item.amount), 0) + accounts.reduce((sum, item) => sum + item.balance, 0), categories: Array.from(categoryTotals, ([name, total]) => ({ name, total })).sort((a, b) => b.total - a.total) } };
     }),
     createTransaction: protectedProcedure.input(z.object({ kind: z.enum(["personal", "business"]), type: z.enum(["income", "expense"]), merchant: z.string().min(1).max(160), category: z.string().min(1).max(80), amount: z.number().int().positive(), occurredAt: z.string(), note: z.string().max(500).optional() })).mutation(async ({ ctx, input }) => {
       const workspace = await db.getFinanceWorkspace(ctx.user.id, input.kind);
@@ -79,6 +80,16 @@ export const appRouter = router({
       if (workspace) await db.deleteFinanceTransaction(workspace.id, input.id);
       return { success: true } as const;
     }),
+    createBudget: protectedProcedure.input(z.object({ kind: z.enum(["personal", "business"]), name: z.string().min(1).max(120), amount: z.number().int().positive(), periodStart: z.string(), periodEnd: z.string() })).mutation(async ({ ctx, input }) => {
+      const workspace = await db.getFinanceWorkspace(ctx.user.id, input.kind);
+      if (!workspace) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Workspace gagal dibuat." });
+      return db.createFinanceBudget({ workspaceId: workspace.id, name: input.name, amount: input.amount, periodStart: new Date(input.periodStart), periodEnd: new Date(input.periodEnd) });
+    }),
+    deleteBudget: protectedProcedure.input(z.object({ kind: z.enum(["personal", "business"]), id: z.number().int().positive() })).mutation(async ({ ctx, input }) => { const workspace = await db.getFinanceWorkspace(ctx.user.id, input.kind); if (workspace) await db.deleteFinanceBudget(workspace.id, input.id); return { success: true } as const; }),
+    createAccount: protectedProcedure.input(z.object({ kind: z.enum(["personal", "business"]), name: z.string().min(1).max(120), type: z.enum(["cash", "bank", "card", "investment"]), balance: z.number().int() })).mutation(async ({ ctx, input }) => { const workspace = await db.getFinanceWorkspace(ctx.user.id, input.kind); if (!workspace) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Workspace gagal dibuat." }); return db.createFinanceAccount({ workspaceId: workspace.id, name: input.name, type: input.type, balance: input.balance }); }),
+    deleteAccount: protectedProcedure.input(z.object({ kind: z.enum(["personal", "business"]), id: z.number().int().positive() })).mutation(async ({ ctx, input }) => { const workspace = await db.getFinanceWorkspace(ctx.user.id, input.kind); if (workspace) await db.deleteFinanceAccount(workspace.id, input.id); return { success: true } as const; }),
+    createBill: protectedProcedure.input(z.object({ kind: z.enum(["personal", "business"]), name: z.string().min(1).max(120), amount: z.number().int().positive(), dueAt: z.string() })).mutation(async ({ ctx, input }) => { const workspace = await db.getFinanceWorkspace(ctx.user.id, input.kind); if (!workspace) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Workspace gagal dibuat." }); return db.createFinanceBill({ workspaceId: workspace.id, name: input.name, amount: input.amount, dueAt: new Date(input.dueAt), status: "open" }); }),
+    toggleBill: protectedProcedure.input(z.object({ kind: z.enum(["personal", "business"]), id: z.number().int().positive() })).mutation(async ({ ctx, input }) => { const workspace = await db.getFinanceWorkspace(ctx.user.id, input.kind); if (workspace) await db.toggleFinanceBill(workspace.id, input.id); return { success: true } as const; }),
   }),
 
   // TODO: add feature routers here, e.g.

@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, type User, financeWorkspaces, financeTransactions, financeBudgets, financeBills } from "../drizzle/schema";
+import { InsertUser, users, type User, financeWorkspaces, financeTransactions, financeBudgets, financeBills, financeAccounts } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -170,6 +170,53 @@ export async function listFinanceBills(workspaceId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
   return db.select().from(financeBills).where(eq(financeBills.workspaceId, workspaceId));
+}
+
+export async function listFinanceAccounts(workspaceId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  return db.select().from(financeAccounts).where(eq(financeAccounts.workspaceId, workspaceId));
+}
+
+export async function createFinanceAccount(input: typeof financeAccounts.$inferInsert) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const result = await db.insert(financeAccounts).values(input);
+  const rows = await db.select().from(financeAccounts).where(eq(financeAccounts.id, result[0].insertId));
+  return rows[0];
+}
+
+export async function deleteFinanceAccount(workspaceId: number, id: number) {
+  const db = await getDb();
+  if (db) await db.delete(financeAccounts).where(and(eq(financeAccounts.workspaceId, workspaceId), eq(financeAccounts.id, id)));
+}
+
+export async function createFinanceBudget(input: typeof financeBudgets.$inferInsert) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const result = await db.insert(financeBudgets).values(input);
+  const rows = await db.select().from(financeBudgets).where(eq(financeBudgets.id, result[0].insertId));
+  return rows[0];
+}
+
+export async function deleteFinanceBudget(workspaceId: number, id: number) {
+  const db = await getDb();
+  if (db) await db.delete(financeBudgets).where(and(eq(financeBudgets.workspaceId, workspaceId), eq(financeBudgets.id, id)));
+}
+
+export async function createFinanceBill(input: typeof financeBills.$inferInsert) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const result = await db.insert(financeBills).values(input);
+  const rows = await db.select().from(financeBills).where(eq(financeBills.id, result[0].insertId));
+  return rows[0];
+}
+
+export async function toggleFinanceBill(workspaceId: number, id: number) {
+  const db = await getDb();
+  if (!db) return;
+  const rows = await db.select().from(financeBills).where(and(eq(financeBills.workspaceId, workspaceId), eq(financeBills.id, id)));
+  if (rows[0]) await db.update(financeBills).set({ status: rows[0].status === "open" ? "paid" : "open" }).where(eq(financeBills.id, id));
 }
 
 // TODO: add feature queries here as your schema grows.
