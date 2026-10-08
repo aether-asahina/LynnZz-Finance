@@ -83,84 +83,6 @@ type FinanceTransactionRecord = { id: number; type: "income" | "expense"; mercha
 type FinanceSnapshot = { transactions: FinanceTransactionRecord[]; summary: { income: number; expenses: number; cashflow: number; balance: number; categories: { name: string; total: number }[] }; budgets: { amount: number }[]; bills: { id: number; name: string; amount: number; dueAt: string | Date; status: "open" | "paid" }[] };
 type TransactionInput = { type: "income" | "expense"; merchant: string; category: string; amount: number; occurredAt: string; note?: string };
 
-const personalData: WorkspaceData = {
-  label: "Personal",
-  greeting: "Selamat pagi, Nadia",
-  description: "Ini ringkasan uangmu untuk membantu mengambil keputusan dengan lebih tenang.",
-  balance: 24850000,
-  balanceChange: "+8,4% dari bulan lalu",
-  income: 18500000,
-  incomeChange: "+12,8%",
-  expenses: 9275000,
-  expenseChange: "−4,2%",
-  cashflow: 9225000,
-  cashflowChange: "+18,6%",
-  health: 82,
-  healthLabel: "Sehat",
-  budgetUsed: 9275000,
-  budgetTotal: 14000000,
-  chart: [42, 55, 48, 72, 62, 83, 76, 95, 86, 104, 91, 118],
-  chartIncome: [68, 74, 78, 83, 80, 92, 89, 98, 94, 104, 101, 115],
-  chartLabels: ["Nov", "Des", "Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt"],
-  spending: [
-    { name: "Hunian", value: 32, total: 2960000, color: "#10251F" },
-    { name: "Makanan", value: 21, total: 1948000, color: "#5EAF87" },
-    { name: "Mobilitas", value: 15, total: 1391000, color: "#D9F66A" },
-    { name: "Lifestyle", value: 12, total: 1113000, color: "#E78767" },
-  ],
-  bills: [
-    { name: "Kartu Kredit BCA", date: "Besok, 12 Okt", amount: 2145000, icon: <CreditCard size={17} />, tone: "peach" },
-    { name: "Internet & TV", date: "15 Okt", amount: 489000, icon: <WalletCards size={17} />, tone: "mint" },
-    { name: "Cicilan apartemen", date: "20 Okt", amount: 3200000, icon: <Home size={17} />, tone: "ink" },
-  ],
-  transactions: [
-    { merchant: "Gaji — PT Karya Digital", category: "Pemasukan", date: "10 Okt 2026", amount: 18500000, type: "income", icon: <Building2 size={17} />, tone: "mint" },
-    { merchant: "Tokopedia", category: "Belanja", date: "09 Okt 2026", amount: 349000, type: "expense", icon: <ShoppingBag size={17} />, tone: "peach" },
-    { merchant: "Kopi Tuku", category: "Makanan", date: "08 Okt 2026", amount: 68000, type: "expense", icon: <CircleDollarSign size={17} />, tone: "yellow" },
-    { merchant: "Transfer ke Tabungan", category: "Tabungan", date: "07 Okt 2026", amount: 2500000, type: "expense", icon: <PiggyBank size={17} />, tone: "blue" },
-    { merchant: "PLN Pascabayar", category: "Tagihan", date: "05 Okt 2026", amount: 735000, type: "expense", icon: <Landmark size={17} />, tone: "violet" },
-  ],
-};
-
-const businessData: WorkspaceData = {
-  label: "Business",
-  greeting: "Selamat pagi, Nadia",
-  description: "Pantau kesehatan bisnis, runway, dan arus kas operasional dalam satu tampilan.",
-  balance: 184650000,
-  balanceChange: "+14,2% dari bulan lalu",
-  income: 76500000,
-  incomeChange: "+21,4%",
-  expenses: 42350000,
-  expenseChange: "−7,8%",
-  cashflow: 34150000,
-  cashflowChange: "+32,1%",
-  health: 91,
-  healthLabel: "Sangat sehat",
-  budgetUsed: 42350000,
-  budgetTotal: 65000000,
-  chart: [54, 64, 58, 81, 78, 88, 91, 86, 105, 112, 106, 126],
-  chartIncome: [77, 82, 86, 95, 91, 104, 101, 109, 111, 120, 118, 132],
-  chartLabels: ["Nov", "Des", "Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt"],
-  spending: [
-    { name: "Payroll", value: 41, total: 17363500, color: "#10251F" },
-    { name: "Operasional", value: 23, total: 9740500, color: "#5EAF87" },
-    { name: "Marketing", value: 18, total: 7623000, color: "#D9F66A" },
-    { name: "Tools & SaaS", value: 11, total: 4658500, color: "#E78767" },
-  ],
-  bills: [
-    { name: "Payroll Oktober", date: "Besok, 12 Okt", amount: 18500000, icon: <BriefcaseBusiness size={17} />, tone: "ink" },
-    { name: "Google Workspace", date: "15 Okt", amount: 1280000, icon: <WalletCards size={17} />, tone: "mint" },
-    { name: "Pajak & BPJS", date: "20 Okt", amount: 5400000, icon: <FileText size={17} />, tone: "peach" },
-  ],
-  transactions: [
-    { merchant: "Invoice #INV-2084", category: "Pendapatan proyek", date: "10 Okt 2026", amount: 38500000, type: "income", icon: <FileText size={17} />, tone: "mint" },
-    { merchant: "Meta Ads", category: "Marketing", date: "09 Okt 2026", amount: 2480000, type: "expense", icon: <BarChart3 size={17} />, tone: "peach" },
-    { merchant: "Kantor Bersama GoWork", category: "Operasional", date: "08 Okt 2026", amount: 4200000, type: "expense", icon: <Building2 size={17} />, tone: "yellow" },
-    { merchant: "Transfer ke Payroll", category: "Payroll", date: "07 Okt 2026", amount: 18500000, type: "expense", icon: <BriefcaseBusiness size={17} />, tone: "blue" },
-    { merchant: "AWS Cloud Services", category: "Tools & SaaS", date: "05 Okt 2026", amount: 1385000, type: "expense", icon: <Landmark size={17} />, tone: "violet" },
-  ],
-};
-
 const navItems: { id: Page; label: string; icon: ReactNode }[] = [
   { id: "overview", label: "Overview", icon: <LayoutDashboard size={18} /> },
   { id: "transactions", label: "Transactions", icon: <Receipt size={18} /> },
@@ -367,7 +289,7 @@ function AuthScreen() {
     }
   };
 
-  return <div className="auth-shell"><div className="auth-visual"><div className="auth-visual__top"><BrandMark /><span className="auth-security"><CheckCircle2 size={14} /> Secure workspace</span></div><div className="auth-visual__copy"><p className="eyebrow eyebrow--lime">FINANCE, CLEARER</p><h1>Buat uangmu lebih mudah dibaca.</h1><p>Satu tampilan untuk keputusan yang lebih cepat — personal maupun business.</p></div><div className="auth-visual__card"><div className="auth-mini-chart"><span style={{ height: "32%" }} /><span style={{ height: "54%" }} /><span style={{ height: "45%" }} /><span style={{ height: "74%" }} /><span style={{ height: "63%" }} /><span style={{ height: "90%" }} /></div><div><span>Net cash flow</span><strong>+Rp 9,2 jt</strong></div><TrendingUp size={18} /></div><div className="auth-visual__footer"><span>Personal finance</span><span>Business finance</span><span>Insights</span></div></div><div className="auth-panel"><div className="auth-panel__inner"><div className="auth-mobile-brand"><BrandMark compact /></div><p className="eyebrow eyebrow--lime">LYNNZZ FINANCE ADVANCED</p><h2>{mode === "login" ? "Selamat datang kembali" : "Mulai dengan LynnZz"}</h2><p className="auth-subtitle">{mode === "login" ? "Masuk untuk melihat dashboard keuanganmu." : "Buat akun gratis dan mulai merapikan uangmu."}</p><div className="auth-mode-tabs"><button className={mode === "login" ? "is-active" : ""} onClick={() => { setMode("login"); setError(""); }}>Masuk</button><button className={mode === "signup" ? "is-active" : ""} onClick={() => { setMode("signup"); setError(""); }}>Daftar dengan email</button></div><form className="auth-form" onSubmit={submit}>{mode === "signup" && <label>Nama lengkap<input value={name} onChange={(event) => setName(event.target.value)} placeholder="Contoh: Nadia Anggraini" required /></label>}<label>Email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="nama@email.com" required /></label><label>Password<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Minimal 8 karakter" minLength={8} required /></label>{error && <div className="auth-error"><X size={15} />{error}</div>}<button className="button button--primary auth-submit" disabled={pending}>{pending ? "Memproses..." : mode === "login" ? "Masuk ke dashboard" : "Buat akun"}<ArrowUpRight size={16} /></button></form><div className="auth-divider"><span>atau</span></div><div className="auth-secondary-actions"><button className="button button--secondary" onClick={continueAsGuest} disabled={pending}><UserRound size={16} /> Lanjut sebagai tamu</button><button className="button button--secondary" onClick={() => { try { startLogin(); } catch (err) { setError(err instanceof Error ? err.message : "Login Manus belum tersedia."); } }} disabled={pending}><Sparkles size={16} /> Login Manus</button></div><p className="auth-legal">Dengan melanjutkan, kamu menyetujui penggunaan LynnZz Finance untuk mengelola data keuanganmu secara aman.</p></div></div></div>;
+  return <div className="auth-shell"><div className="auth-visual"><div className="auth-visual__top"><BrandMark /><span className="auth-security"><CheckCircle2 size={14} /> Secure workspace</span></div><div className="auth-visual__copy"><p className="eyebrow eyebrow--lime">FINANCE, CLEARER</p><h1>Buat uangmu lebih mudah dibaca.</h1><p>Satu tampilan untuk keputusan yang lebih cepat — personal maupun business.</p></div><div className="auth-visual__card"><div className="auth-mini-chart"><span style={{ height: "32%" }} /><span style={{ height: "54%" }} /><span style={{ height: "45%" }} /><span style={{ height: "74%" }} /><span style={{ height: "63%" }} /><span style={{ height: "90%" }} /></div><div><span>Workspace</span><strong>Siap terhubung</strong></div><TrendingUp size={18} /></div><div className="auth-visual__footer"><span>Personal finance</span><span>Business finance</span><span>Insights</span></div></div><div className="auth-panel"><div className="auth-panel__inner"><div className="auth-mobile-brand"><BrandMark compact /></div><p className="eyebrow eyebrow--lime">LYNNZZ FINANCE ADVANCED</p><h2>{mode === "login" ? "Selamat datang kembali" : "Mulai dengan LynnZz"}</h2><p className="auth-subtitle">{mode === "login" ? "Masuk untuk melihat dashboard keuanganmu." : "Buat akun gratis dan mulai merapikan uangmu."}</p><div className="auth-mode-tabs"><button className={mode === "login" ? "is-active" : ""} onClick={() => { setMode("login"); setError(""); }}>Masuk</button><button className={mode === "signup" ? "is-active" : ""} onClick={() => { setMode("signup"); setError(""); }}>Daftar dengan email</button></div><form className="auth-form" onSubmit={submit}>{mode === "signup" && <label>Nama lengkap<input value={name} onChange={(event) => setName(event.target.value)} placeholder="Contoh: Nadia Anggraini" required /></label>}<label>Email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="nama@email.com" required /></label><label>Password<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Minimal 8 karakter" minLength={8} required /></label>{error && <div className="auth-error"><X size={15} />{error}</div>}<button className="button button--primary auth-submit" disabled={pending}>{pending ? "Memproses..." : mode === "login" ? "Masuk ke dashboard" : "Buat akun"}<ArrowUpRight size={16} /></button></form><div className="auth-divider"><span>atau</span></div><div className="auth-secondary-actions"><button className="button button--secondary" onClick={continueAsGuest} disabled={pending}><UserRound size={16} /> Lanjut sebagai tamu</button><button className="button button--secondary" onClick={() => { try { startLogin(); } catch (err) { setError(err instanceof Error ? err.message : "Login Manus belum tersedia."); } }} disabled={pending}><Sparkles size={16} /> Login Manus</button></div><p className="auth-legal">Dengan melanjutkan, kamu menyetujui penggunaan LynnZz Finance untuk mengelola data keuanganmu secara aman.</p></div></div></div>;
 }
 
 type StaticAccount = { name: string; email: string; passwordHash?: string; guest?: boolean };
@@ -407,7 +329,7 @@ function StaticAuthScreen({ onAuthenticated }: { onAuthenticated: (account: Stat
     } else setError("Email atau password tidak sesuai di perangkat ini.");
   };
   const guest = () => { const account = { name: "Tamu", email: "", guest: true }; localStorage.setItem(STATIC_SESSION_KEY, JSON.stringify(account)); onAuthenticated(account); };
-  return <div className="auth-shell"><div className="auth-visual"><div className="auth-visual__top"><BrandMark /><span className="auth-security"><CheckCircle2 size={14} /> GitHub Pages mode</span></div><div className="auth-visual__copy"><p className="eyebrow eyebrow--lime">STATIC WORKSPACE</p><h1>Keuangan tetap bisa jalan di mana saja.</h1><p>Mode GitHub Pages menyimpan akun dan data demo di browser perangkat ini.</p></div><div className="auth-visual__card"><div className="auth-mini-chart"><span style={{ height: "32%" }} /><span style={{ height: "54%" }} /><span style={{ height: "45%" }} /><span style={{ height: "74%" }} /><span style={{ height: "63%" }} /><span style={{ height: "90%" }} /></div><div><span>Local workspace</span><strong>Offline-ready</strong></div><TrendingUp size={18} /></div><div className="auth-visual__footer"><span>Tanpa server</span><span>Tanpa setup</span><span>Siap demo</span></div></div><div className="auth-panel"><div className="auth-panel__inner"><div className="auth-mobile-brand"><BrandMark compact /></div><p className="eyebrow eyebrow--lime">LYNNZZ FINANCE ADVANCED</p><h2>{mode === "login" ? "Masuk ke workspace" : "Buat akun lokal"}</h2><p className="auth-subtitle">{mode === "login" ? "Akun tersimpan aman di browser ini." : "Daftar untuk menyimpan sesi demo di perangkat ini."}</p><div className="auth-mode-tabs"><button className={mode === "login" ? "is-active" : ""} onClick={() => { setMode("login"); setError(""); }}>Masuk</button><button className={mode === "signup" ? "is-active" : ""} onClick={() => { setMode("signup"); setError(""); }}>Daftar dengan email</button></div><form className="auth-form" onSubmit={submit}>{mode === "signup" && <label>Nama lengkap<input value={name} onChange={(event) => setName(event.target.value)} placeholder="Contoh: Nadia Anggraini" required /></label>}<label>Email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="nama@email.com" required /></label><label>Password<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Minimal 8 karakter" minLength={8} required /></label>{error && <div className="auth-error"><X size={15} />{error}</div>}<button className="button button--primary auth-submit">{mode === "login" ? "Masuk ke dashboard" : "Buat akun"}<ArrowUpRight size={16} /></button></form><div className="auth-divider"><span>atau</span></div><button className="button button--secondary static-guest-button" onClick={guest}><UserRound size={16} /> Lanjut sebagai tamu</button><p className="auth-legal">Mode static GitHub Pages: data tidak masuk database server dan hanya tersedia di browser ini.</p></div></div></div>;
+  return <div className="auth-shell"><div className="auth-visual"><div className="auth-visual__top"><BrandMark /><span className="auth-security"><CheckCircle2 size={14} /> GitHub Pages mode</span></div><div className="auth-visual__copy"><p className="eyebrow eyebrow--lime">STATIC WORKSPACE</p><h1>Keuangan tetap bisa jalan di mana saja.</h1><p>Mode GitHub Pages menyimpan akun dan data lokal di browser perangkat ini.</p></div><div className="auth-visual__card"><div className="auth-mini-chart"><span style={{ height: "32%" }} /><span style={{ height: "54%" }} /><span style={{ height: "45%" }} /><span style={{ height: "74%" }} /><span style={{ height: "63%" }} /><span style={{ height: "90%" }} /></div><div><span>Local workspace</span><strong>Offline-ready</strong></div><TrendingUp size={18} /></div><div className="auth-visual__footer"><span>Tanpa server</span><span>Tanpa setup</span><span>Pribadi</span></div></div><div className="auth-panel"><div className="auth-panel__inner"><div className="auth-mobile-brand"><BrandMark compact /></div><p className="eyebrow eyebrow--lime">LYNNZZ FINANCE ADVANCED</p><h2>{mode === "login" ? "Masuk ke workspace" : "Buat akun lokal"}</h2><p className="auth-subtitle">{mode === "login" ? "Akun tersimpan aman di browser ini." : "Daftar untuk menyimpan sesi di perangkat ini."}</p><div className="auth-mode-tabs"><button className={mode === "login" ? "is-active" : ""} onClick={() => { setMode("login"); setError(""); }}>Masuk</button><button className={mode === "signup" ? "is-active" : ""} onClick={() => { setMode("signup"); setError(""); }}>Daftar dengan email</button></div><form className="auth-form" onSubmit={submit}>{mode === "signup" && <label>Nama lengkap<input value={name} onChange={(event) => setName(event.target.value)} placeholder="Contoh: Nadia Anggraini" required /></label>}<label>Email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="nama@email.com" required /></label><label>Password<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Minimal 8 karakter" minLength={8} required /></label>{error && <div className="auth-error"><X size={15} />{error}</div>}<button className="button button--primary auth-submit">{mode === "login" ? "Masuk ke dashboard" : "Buat akun"}<ArrowUpRight size={16} /></button></form><div className="auth-divider"><span>atau</span></div><button className="button button--secondary static-guest-button" onClick={guest}><UserRound size={16} /> Lanjut sebagai tamu</button><p className="auth-legal">Mode static GitHub Pages: data tidak masuk database server dan hanya tersedia di browser ini.</p></div></div></div>;
 }
 
 function GithubPagesApp() {
@@ -416,10 +338,10 @@ function GithubPagesApp() {
   const [snapshots, setSnapshots] = useState<Record<Workspace, FinanceSnapshot>>(() => ({ personal: load("personal"), business: load("business") }));
   if (!session) return <StaticAuthScreen onAuthenticated={setSession} />;
   const createTransaction = async (kind: Workspace, input: TransactionInput) => { const current = snapshots[kind]; const transaction = { id: Date.now(), ...input, occurredAt: input.occurredAt }; const transactions = [transaction, ...current.transactions]; const income = transactions.filter(item => item.type === "income").reduce((sum, item) => sum + item.amount, 0); const expenses = transactions.filter(item => item.type === "expense").reduce((sum, item) => sum + item.amount, 0); const categories = Array.from(transactions.filter(item => item.type === "expense").reduce((map, item) => map.set(item.category, (map.get(item.category) ?? 0) + item.amount), new Map<string, number>()), ([name, total]) => ({ name, total })); const next = { ...current, transactions, summary: { income, expenses, cashflow: income - expenses, balance: income - expenses, categories } }; localStorage.setItem(`lynnzz_github_transactions_${kind}_v1`, JSON.stringify(next)); setSnapshots(prev => ({ ...prev, [kind]: next })); };
-  return <FinanceApp liveData={{ personal: snapshotToWorkspaceData("personal", snapshots.personal), business: snapshotToWorkspaceData("business", snapshots.business) }} onCreateTransaction={createTransaction} onLogout={() => { localStorage.removeItem(STATIC_SESSION_KEY); setSession(null); }} />;
+  return <FinanceApp liveData={{ personal: snapshotToWorkspaceData("personal", snapshots.personal), business: snapshotToWorkspaceData("business", snapshots.business) }} onCreateTransaction={createTransaction} profileName={session.name} onLogout={() => { localStorage.removeItem(STATIC_SESSION_KEY); setSession(null); }} />;
 }
 
-function FinanceApp({ onLogout, liveData, onCreateTransaction }: { onLogout: () => void; liveData: Record<Workspace, WorkspaceData>; onCreateTransaction: (kind: Workspace, input: TransactionInput) => Promise<void> }) {
+function FinanceApp({ onLogout, liveData, onCreateTransaction, profileName }: { onLogout: () => void; liveData: Record<Workspace, WorkspaceData>; onCreateTransaction: (kind: Workspace, input: TransactionInput) => Promise<void>; profileName: string }) {
   const [workspace, setWorkspace] = useState<Workspace>("personal");
   const [page, setPage] = useState<Page>("overview");
   const [mobileMenu, setMobileMenu] = useState(false);
@@ -427,6 +349,7 @@ function FinanceApp({ onLogout, liveData, onCreateTransaction }: { onLogout: () 
   const [notice, setNotice] = useState("");
   const [search, setSearch] = useState("");
   const data = liveData[workspace];
+  const profileInitials = profileName.split(" ").map(part => part[0]).join("").slice(0, 2).toUpperCase();
   const filteredTransactions = useMemo(() => data.transactions.filter((transaction) => `${transaction.merchant} ${transaction.category}`.toLowerCase().includes(search.toLowerCase())), [data, search]);
   const announce = (message: string) => { setNotice(message); window.setTimeout(() => setNotice(""), 3000); };
   const handleSave = async (input: TransactionInput) => { await onCreateTransaction(workspace, input); setShowModal(false); announce("Transaksi berhasil disimpan."); };
@@ -437,11 +360,11 @@ function FinanceApp({ onLogout, liveData, onCreateTransaction }: { onLogout: () 
       <div className="workspace-switcher"><span className={`workspace-avatar workspace-avatar--${workspace}`}>{workspace === "personal" ? <UserRound size={16} /> : <BriefcaseBusiness size={16} />}</span><div><span className="workspace-label">Workspace aktif</span><strong>{data.label}</strong></div><ChevronDown size={15} className="workspace-chevron" /></div>
       <div className="workspace-tabs"><button className={workspace === "personal" ? "is-active" : ""} onClick={() => { setWorkspace("personal"); setPage("overview"); setMobileMenu(false); }}><UserRound size={14} /> Personal</button><button className={workspace === "business" ? "is-active" : ""} onClick={() => { setWorkspace("business"); setPage("overview"); setMobileMenu(false); }}><BriefcaseBusiness size={14} /> Business</button></div>
       <nav className="main-nav"><span className="nav-section-label">Workspace</span>{navItems.map((item) => <button key={item.id} className={`nav-item ${page === item.id ? "is-active" : ""}`} onClick={() => { setPage(item.id); setMobileMenu(false); }}>{item.icon}<span>{item.label}</span>{item.id === "insights" && <span className="nav-badge">4</span>}</button>)}</nav>
-      <div className="sidebar-bottom"><button className={`nav-item ${page === "settings" ? "is-active" : ""}`} onClick={() => { setPage("settings"); setMobileMenu(false); }}><Settings2 size={18} /><span>Settings</span></button><div className="upgrade-card"><span className="upgrade-icon"><Sparkles size={16} /></span><strong>Advanced mode</strong><p>Semua sinyal keuangan di satu tempat.</p><button onClick={() => announce("Semua fitur Advanced sudah aktif di preview.")}>Jelajahi fitur <ArrowUpRight size={14} /></button></div><button className="profile-row profile-row-button" onClick={onLogout} title="Keluar dari akun"><span className="profile-avatar">NA</span><div><strong>Nadia Anggraini</strong><span>Keluar dari akun</span></div><MoreHorizontal size={17} className="profile-more" /></button></div>
+      <div className="sidebar-bottom"><button className={`nav-item ${page === "settings" ? "is-active" : ""}`} onClick={() => { setPage("settings"); setMobileMenu(false); }}><Settings2 size={18} /><span>Settings</span></button><div className="upgrade-card"><span className="upgrade-icon"><Sparkles size={16} /></span><strong>Advanced mode</strong><p>Semua sinyal keuangan di satu tempat.</p><button onClick={() => announce("Semua fitur Advanced sudah aktif di preview.")}>Jelajahi fitur <ArrowUpRight size={14} /></button></div><button className="profile-row profile-row-button" onClick={onLogout} title="Keluar dari akun"><span className="profile-avatar">{profileInitials}</span><div><strong>{profileName}</strong><span>Keluar dari akun</span></div><MoreHorizontal size={17} className="profile-more" /></button></div>
     </aside>
 
     <main className="main-content">
-      <header className="topbar"><div className="topbar-left"><button className="mobile-menu-button icon-button" onClick={() => setMobileMenu(true)} aria-label="Buka menu"><Menu size={20} /></button><div className="breadcrumb"><span>LynnZz Finance</span><ChevronRight size={14} /><strong>{navItems.find((item) => item.id === page)?.label ?? "Settings"}</strong></div></div><div className="topbar-actions"><label className="search-box"><Search size={17} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Cari transaksi..." aria-label="Cari transaksi" />{search && <button onClick={() => setSearch("")} aria-label="Hapus pencarian"><X size={14} /></button>}<kbd>⌘ K</kbd></label><button className="icon-button notification-button" onClick={() => announce("Tidak ada notifikasi baru.")} aria-label="Notifikasi"><Bell size={18} /><span /></button><span className="topbar-avatar">NA</span></div></header>
+      <header className="topbar"><div className="topbar-left"><button className="mobile-menu-button icon-button" onClick={() => setMobileMenu(true)} aria-label="Buka menu"><Menu size={20} /></button><div className="breadcrumb"><span>LynnZz Finance</span><ChevronRight size={14} /><strong>{navItems.find((item) => item.id === page)?.label ?? "Settings"}</strong></div></div><div className="topbar-actions"><label className="search-box"><Search size={17} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Cari transaksi..." aria-label="Cari transaksi" />{search && <button onClick={() => setSearch("")} aria-label="Hapus pencarian"><X size={14} /></button>}<kbd>⌘ K</kbd></label><button className="icon-button notification-button" onClick={() => announce("Belum ada notifikasi baru.")} aria-label="Notifikasi"><Bell size={18} /><span /></button><span className="topbar-avatar">{profileInitials}</span></div></header>
       <div className="content-wrap">{page === "overview" ? <Overview data={data} workspace={workspace} onAddTransaction={() => setShowModal(true)} onNotice={announce} /> : page === "transactions" ? <div className="page-stack"><PagePlaceholder page={page} data={data} onNotice={announce} />{search && <section className="panel transactions-panel search-results"><div className="panel-heading"><div><p className="eyebrow">SEARCH RESULT</p><h2>{filteredTransactions.length} transaksi ditemukan</h2></div></div><TransactionTable transactions={filteredTransactions} /></section>}</div> : <PagePlaceholder page={page} data={data} onNotice={announce} />}</div>
     </main>
     {notice && <div className="toast"><CheckCircle2 size={17} /><span>{notice}</span><button onClick={() => setNotice("")} aria-label="Tutup notifikasi"><X size={14} /></button></div>}
@@ -459,7 +382,7 @@ function ServerApp() {
   if (!sessionQuery.data) return <AuthScreen />;
   if (personalQuery.isLoading || businessQuery.isLoading) return <div className="auth-loading"><BrandMark /><span>Memuat data keuangan...</span></div>;
   const createTransaction = async (kind: Workspace, input: TransactionInput) => { await createMutation.mutateAsync({ kind, ...input }); await Promise.all([personalQuery.refetch(), businessQuery.refetch()]); };
-  return <FinanceApp liveData={{ personal: snapshotToWorkspaceData("personal", personalQuery.data), business: snapshotToWorkspaceData("business", businessQuery.data) }} onCreateTransaction={createTransaction} onLogout={() => logoutMutation.mutate()} />;
+  return <FinanceApp liveData={{ personal: snapshotToWorkspaceData("personal", personalQuery.data), business: snapshotToWorkspaceData("business", businessQuery.data) }} onCreateTransaction={createTransaction} profileName={sessionQuery.data.user.name ?? sessionQuery.data.user.email ?? "Akun"} onLogout={() => logoutMutation.mutate()} />;
 }
 
 function App() {
