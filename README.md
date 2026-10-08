@@ -1,14 +1,24 @@
 # LynnZz Finance Advanced
 
-React / Express / tRPC / Drizzle starter, adapted from the Sandbox web-db-user template.
+LynnZz Finance Advanced adalah dashboard keuangan Personal dan Business berbasis React / Express / tRPC / Drizzle.
+
+## Fitur
+
+- Dashboard cash flow, saldo, pemasukan, pengeluaran, budget, tagihan, health score, dan transaksi.
+- Workspace Personal dan Business.
+- Login Manus OAuth, login email/password, daftar dengan email, login tamu, dan logout.
+- Session user/tamu tersimpan di database MySQL dengan cookie aman.
+
+## Development
 
 - `pnpm dev`: development server; honors `PORT` (default 3000).
-- `pnpm build` / `pnpm start`: build and serve `dist/index.js` and `dist/public/`.
-- `pnpm db:migrate`: apply checked-in migrations. `pnpm db:push`: generate and apply new schema changes.
-- `pnpm check` / `pnpm test`: types and application tests.
+- `pnpm build` / `pnpm start`: build dan serve `dist/index.js` dan `dist/public/`.
+- `pnpm db:migrate`: apply checked-in migrations.
+- `pnpm db:push`: generate dan apply perubahan schema.
+- `pnpm check` / `pnpm test`: type check dan test aplikasi.
 
-Start with the Webdev skill's default-template guide. Platform login, storage, payments and service contracts live in its shared references; read the relevant capability before extending its helper.
+## Database dan keamanan
 
-`server/_core/publicConfig.ts` exposes only named public runtime values. Private keys stay server-side. The platform serves managed `/manus-storage/` assets; the application does not register a second proxy.
+Akun email disimpan pada tabel `users`; session disimpan pada tabel `auth_sessions`. Password di-hash dengan `scrypt` dan tidak dikirim ke browser. Token session mentah tidak disimpan di database.
 
-Platform configuration is readable and editable through `webdev.config`. Default settings are initial values, not enforced constraints. The agent may modify the files, commands and configuration or follow the flexible guide for another stack.
+Platform configuration dapat dibaca dan diedit melalui `webdev.config`. Private keys tetap server-side. File `index.html` di root merupakan artefak legacy dari histori repository sebelumnya; aplikasi LynnZz yang aktif berjalan dari entry point `client/index.html` melalui Vite.
