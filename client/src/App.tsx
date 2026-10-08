@@ -342,6 +342,52 @@ function AuthScreen() {
   return <div className="auth-shell"><div className="auth-visual"><div className="auth-visual__top"><BrandMark /><span className="auth-security"><CheckCircle2 size={14} /> Secure workspace</span></div><div className="auth-visual__copy"><p className="eyebrow eyebrow--lime">FINANCE, CLEARER</p><h1>Buat uangmu lebih mudah dibaca.</h1><p>Satu tampilan untuk keputusan yang lebih cepat — personal maupun business.</p></div><div className="auth-visual__card"><div className="auth-mini-chart"><span style={{ height: "32%" }} /><span style={{ height: "54%" }} /><span style={{ height: "45%" }} /><span style={{ height: "74%" }} /><span style={{ height: "63%" }} /><span style={{ height: "90%" }} /></div><div><span>Net cash flow</span><strong>+Rp 9,2 jt</strong></div><TrendingUp size={18} /></div><div className="auth-visual__footer"><span>Personal finance</span><span>Business finance</span><span>Insights</span></div></div><div className="auth-panel"><div className="auth-panel__inner"><div className="auth-mobile-brand"><BrandMark compact /></div><p className="eyebrow eyebrow--lime">LYNNZZ FINANCE ADVANCED</p><h2>{mode === "login" ? "Selamat datang kembali" : "Mulai dengan LynnZz"}</h2><p className="auth-subtitle">{mode === "login" ? "Masuk untuk melihat dashboard keuanganmu." : "Buat akun gratis dan mulai merapikan uangmu."}</p><div className="auth-mode-tabs"><button className={mode === "login" ? "is-active" : ""} onClick={() => { setMode("login"); setError(""); }}>Masuk</button><button className={mode === "signup" ? "is-active" : ""} onClick={() => { setMode("signup"); setError(""); }}>Daftar dengan email</button></div><form className="auth-form" onSubmit={submit}>{mode === "signup" && <label>Nama lengkap<input value={name} onChange={(event) => setName(event.target.value)} placeholder="Contoh: Nadia Anggraini" required /></label>}<label>Email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="nama@email.com" required /></label><label>Password<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Minimal 8 karakter" minLength={8} required /></label>{error && <div className="auth-error"><X size={15} />{error}</div>}<button className="button button--primary auth-submit" disabled={pending}>{pending ? "Memproses..." : mode === "login" ? "Masuk ke dashboard" : "Buat akun"}<ArrowUpRight size={16} /></button></form><div className="auth-divider"><span>atau</span></div><div className="auth-secondary-actions"><button className="button button--secondary" onClick={continueAsGuest} disabled={pending}><UserRound size={16} /> Lanjut sebagai tamu</button><button className="button button--secondary" onClick={() => { try { startLogin(); } catch (err) { setError(err instanceof Error ? err.message : "Login Manus belum tersedia."); } }} disabled={pending}><Sparkles size={16} /> Login Manus</button></div><p className="auth-legal">Dengan melanjutkan, kamu menyetujui penggunaan LynnZz Finance untuk mengelola data keuanganmu secara aman.</p></div></div></div>;
 }
 
+type StaticAccount = { name: string; email: string; passwordHash?: string; guest?: boolean };
+const STATIC_ACCOUNT_KEY = "lynnzz_github_account_v1";
+const STATIC_SESSION_KEY = "lynnzz_github_session_v1";
+
+async function hashStaticPassword(value: string) {
+  if (window.crypto?.subtle) {
+    const buffer = await window.crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+    return Array.from(new Uint8Array(buffer)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  }
+  return window.btoa(unescape(encodeURIComponent(value)));
+}
+
+function StaticAuthScreen({ onAuthenticated }: { onAuthenticated: (account: StaticAccount) => void }) {
+  const [mode, setMode] = useState<"login" | "signup">("login");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError("");
+    const normalizedEmail = email.trim().toLowerCase();
+    if (password.length < 8) return setError("Password minimal 8 karakter.");
+    const existing = JSON.parse(localStorage.getItem(STATIC_ACCOUNT_KEY) || "null") as StaticAccount | null;
+    const passwordHash = await hashStaticPassword(password);
+    if (mode === "signup") {
+      if (!/^\S+@\S+\.\S+$/.test(normalizedEmail)) return setError("Masukkan email yang valid.");
+      const account = { name: name.trim() || normalizedEmail.split("@")[0], email: normalizedEmail, passwordHash };
+      localStorage.setItem(STATIC_ACCOUNT_KEY, JSON.stringify(account));
+      localStorage.setItem(STATIC_SESSION_KEY, JSON.stringify(account));
+      onAuthenticated(account);
+    } else if (existing?.email === normalizedEmail && existing.passwordHash === passwordHash) {
+      localStorage.setItem(STATIC_SESSION_KEY, JSON.stringify(existing));
+      onAuthenticated(existing);
+    } else setError("Email atau password tidak sesuai di perangkat ini.");
+  };
+  const guest = () => { const account = { name: "Tamu", email: "", guest: true }; localStorage.setItem(STATIC_SESSION_KEY, JSON.stringify(account)); onAuthenticated(account); };
+  return <div className="auth-shell"><div className="auth-visual"><div className="auth-visual__top"><BrandMark /><span className="auth-security"><CheckCircle2 size={14} /> GitHub Pages mode</span></div><div className="auth-visual__copy"><p className="eyebrow eyebrow--lime">STATIC WORKSPACE</p><h1>Keuangan tetap bisa jalan di mana saja.</h1><p>Mode GitHub Pages menyimpan akun dan data demo di browser perangkat ini.</p></div><div className="auth-visual__card"><div className="auth-mini-chart"><span style={{ height: "32%" }} /><span style={{ height: "54%" }} /><span style={{ height: "45%" }} /><span style={{ height: "74%" }} /><span style={{ height: "63%" }} /><span style={{ height: "90%" }} /></div><div><span>Local workspace</span><strong>Offline-ready</strong></div><TrendingUp size={18} /></div><div className="auth-visual__footer"><span>Tanpa server</span><span>Tanpa setup</span><span>Siap demo</span></div></div><div className="auth-panel"><div className="auth-panel__inner"><div className="auth-mobile-brand"><BrandMark compact /></div><p className="eyebrow eyebrow--lime">LYNNZZ FINANCE ADVANCED</p><h2>{mode === "login" ? "Masuk ke workspace" : "Buat akun lokal"}</h2><p className="auth-subtitle">{mode === "login" ? "Akun tersimpan aman di browser ini." : "Daftar untuk menyimpan sesi demo di perangkat ini."}</p><div className="auth-mode-tabs"><button className={mode === "login" ? "is-active" : ""} onClick={() => { setMode("login"); setError(""); }}>Masuk</button><button className={mode === "signup" ? "is-active" : ""} onClick={() => { setMode("signup"); setError(""); }}>Daftar dengan email</button></div><form className="auth-form" onSubmit={submit}>{mode === "signup" && <label>Nama lengkap<input value={name} onChange={(event) => setName(event.target.value)} placeholder="Contoh: Nadia Anggraini" required /></label>}<label>Email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="nama@email.com" required /></label><label>Password<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Minimal 8 karakter" minLength={8} required /></label>{error && <div className="auth-error"><X size={15} />{error}</div>}<button className="button button--primary auth-submit">{mode === "login" ? "Masuk ke dashboard" : "Buat akun"}<ArrowUpRight size={16} /></button></form><div className="auth-divider"><span>atau</span></div><button className="button button--secondary static-guest-button" onClick={guest}><UserRound size={16} /> Lanjut sebagai tamu</button><p className="auth-legal">Mode static GitHub Pages: data tidak masuk database server dan hanya tersedia di browser ini.</p></div></div></div>;
+}
+
+function GithubPagesApp() {
+  const [session, setSession] = useState<StaticAccount | null>(() => { try { return JSON.parse(localStorage.getItem(STATIC_SESSION_KEY) || "null"); } catch { return null; } });
+  if (!session) return <StaticAuthScreen onAuthenticated={setSession} />;
+  return <FinanceApp onLogout={() => { localStorage.removeItem(STATIC_SESSION_KEY); setSession(null); }} />;
+}
+
 function FinanceApp({ onLogout }: { onLogout: () => void }) {
   const [workspace, setWorkspace] = useState<Workspace>("personal");
   const [page, setPage] = useState<Page>("overview");
@@ -372,12 +418,17 @@ function FinanceApp({ onLogout }: { onLogout: () => void }) {
   </div>;
 }
 
-function App() {
+function ServerApp() {
   const sessionQuery = trpc.auth.session.useQuery(undefined, { retry: false, refetchOnWindowFocus: false });
   const logoutMutation = trpc.auth.logout.useMutation({ onSuccess: () => sessionQuery.refetch() });
   if (sessionQuery.isLoading) return <div className="auth-loading"><BrandMark /><span>Menyiapkan workspace...</span></div>;
   if (!sessionQuery.data) return <AuthScreen />;
   return <FinanceApp onLogout={() => logoutMutation.mutate()} />;
+}
+
+function App() {
+  const isGithubPages = typeof window !== "undefined" && window.location.hostname.endsWith("github.io");
+  return isGithubPages ? <GithubPagesApp /> : <ServerApp />;
 }
 
 export default App;
