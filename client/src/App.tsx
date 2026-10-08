@@ -1,4 +1,6 @@
 import { FormEvent, ReactNode, useMemo, useState } from "react";
+import { trpc } from "@/lib/trpc";
+import { startLogin } from "./const";
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -303,7 +305,44 @@ function AddTransactionModal({ onClose, onSave }: { onClose: () => void; onSave:
   return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><div className="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div className="modal-heading"><div><p className="eyebrow eyebrow--lime">QUICK ACTION</p><h2 id="modal-title">Tambah transaksi</h2></div><button className="icon-button" onClick={onClose} aria-label="Tutup modal"><X size={19} /></button></div><p className="modal-intro">Catat pergerakan uang tanpa meninggalkan overview.</p><form onSubmit={submit}><label>Jenis transaksi<select value={type} onChange={(event) => setType(event.target.value)}><option>Pemasukan</option><option>Pengeluaran</option><option>Transfer</option></select></label><label>Deskripsi<input required placeholder="Contoh: Belanja bulanan" /></label><div className="form-grid"><label>Jumlah<input required type="number" min="0" placeholder="0" /></label><label>Tanggal<input required type="date" defaultValue="2026-10-08" /></label></div><label>Kategori<select defaultValue="Makanan"><option>Makanan</option><option>Belanja</option><option>Tagihan</option><option>Transportasi</option><option>Gaji</option></select></label><div className="modal-actions"><button type="button" className="button button--secondary" onClick={onClose}>Batal</button><button type="submit" className="button button--primary"><CheckCircle2 size={16} /> Simpan transaksi</button></div></form></div></div>;
 }
 
-function App() {
+function AuthScreen() {
+  const [mode, setMode] = useState<"login" | "signup">("login");
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const utils = trpc.useUtils();
+  const loginMutation = trpc.auth.loginEmail.useMutation();
+  const signupMutation = trpc.auth.signupEmail.useMutation();
+  const guestMutation = trpc.auth.guest.useMutation();
+  const pending = loginMutation.isPending || signupMutation.isPending || guestMutation.isPending;
+
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError("");
+    try {
+      if (mode === "login") await loginMutation.mutateAsync({ email, password });
+      else await signupMutation.mutateAsync({ email, name, password });
+      await utils.auth.session.invalidate();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Terjadi kesalahan. Coba lagi.");
+    }
+  };
+
+  const continueAsGuest = async () => {
+    setError("");
+    try {
+      await guestMutation.mutateAsync();
+      await utils.auth.session.invalidate();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Mode tamu belum tersedia.");
+    }
+  };
+
+  return <div className="auth-shell"><div className="auth-visual"><div className="auth-visual__top"><BrandMark /><span className="auth-security"><CheckCircle2 size={14} /> Secure workspace</span></div><div className="auth-visual__copy"><p className="eyebrow eyebrow--lime">FINANCE, CLEARER</p><h1>Buat uangmu lebih mudah dibaca.</h1><p>Satu tampilan untuk keputusan yang lebih cepat — personal maupun business.</p></div><div className="auth-visual__card"><div className="auth-mini-chart"><span style={{ height: "32%" }} /><span style={{ height: "54%" }} /><span style={{ height: "45%" }} /><span style={{ height: "74%" }} /><span style={{ height: "63%" }} /><span style={{ height: "90%" }} /></div><div><span>Net cash flow</span><strong>+Rp 9,2 jt</strong></div><TrendingUp size={18} /></div><div className="auth-visual__footer"><span>Personal finance</span><span>Business finance</span><span>Insights</span></div></div><div className="auth-panel"><div className="auth-panel__inner"><div className="auth-mobile-brand"><BrandMark compact /></div><p className="eyebrow eyebrow--lime">LYNNZZ FINANCE ADVANCED</p><h2>{mode === "login" ? "Selamat datang kembali" : "Mulai dengan LynnZz"}</h2><p className="auth-subtitle">{mode === "login" ? "Masuk untuk melihat dashboard keuanganmu." : "Buat akun gratis dan mulai merapikan uangmu."}</p><div className="auth-mode-tabs"><button className={mode === "login" ? "is-active" : ""} onClick={() => { setMode("login"); setError(""); }}>Masuk</button><button className={mode === "signup" ? "is-active" : ""} onClick={() => { setMode("signup"); setError(""); }}>Daftar dengan email</button></div><form className="auth-form" onSubmit={submit}>{mode === "signup" && <label>Nama lengkap<input value={name} onChange={(event) => setName(event.target.value)} placeholder="Contoh: Nadia Anggraini" required /></label>}<label>Email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="nama@email.com" required /></label><label>Password<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Minimal 8 karakter" minLength={8} required /></label>{error && <div className="auth-error"><X size={15} />{error}</div>}<button className="button button--primary auth-submit" disabled={pending}>{pending ? "Memproses..." : mode === "login" ? "Masuk ke dashboard" : "Buat akun"}<ArrowUpRight size={16} /></button></form><div className="auth-divider"><span>atau</span></div><div className="auth-secondary-actions"><button className="button button--secondary" onClick={continueAsGuest} disabled={pending}><UserRound size={16} /> Lanjut sebagai tamu</button><button className="button button--secondary" onClick={() => { try { startLogin(); } catch (err) { setError(err instanceof Error ? err.message : "Login Manus belum tersedia."); } }} disabled={pending}><Sparkles size={16} /> Login Manus</button></div><p className="auth-legal">Dengan melanjutkan, kamu menyetujui penggunaan LynnZz Finance untuk mengelola data keuanganmu secara aman.</p></div></div></div>;
+}
+
+function FinanceApp({ onLogout }: { onLogout: () => void }) {
   const [workspace, setWorkspace] = useState<Workspace>("personal");
   const [page, setPage] = useState<Page>("overview");
   const [mobileMenu, setMobileMenu] = useState(false);
@@ -321,7 +360,7 @@ function App() {
       <div className="workspace-switcher"><span className={`workspace-avatar workspace-avatar--${workspace}`}>{workspace === "personal" ? <UserRound size={16} /> : <BriefcaseBusiness size={16} />}</span><div><span className="workspace-label">Workspace aktif</span><strong>{data.label}</strong></div><ChevronDown size={15} className="workspace-chevron" /></div>
       <div className="workspace-tabs"><button className={workspace === "personal" ? "is-active" : ""} onClick={() => { setWorkspace("personal"); setPage("overview"); setMobileMenu(false); }}><UserRound size={14} /> Personal</button><button className={workspace === "business" ? "is-active" : ""} onClick={() => { setWorkspace("business"); setPage("overview"); setMobileMenu(false); }}><BriefcaseBusiness size={14} /> Business</button></div>
       <nav className="main-nav"><span className="nav-section-label">Workspace</span>{navItems.map((item) => <button key={item.id} className={`nav-item ${page === item.id ? "is-active" : ""}`} onClick={() => { setPage(item.id); setMobileMenu(false); }}>{item.icon}<span>{item.label}</span>{item.id === "insights" && <span className="nav-badge">4</span>}</button>)}</nav>
-      <div className="sidebar-bottom"><button className={`nav-item ${page === "settings" ? "is-active" : ""}`} onClick={() => { setPage("settings"); setMobileMenu(false); }}><Settings2 size={18} /><span>Settings</span></button><div className="upgrade-card"><span className="upgrade-icon"><Sparkles size={16} /></span><strong>Advanced mode</strong><p>Semua sinyal keuangan di satu tempat.</p><button onClick={() => announce("Semua fitur Advanced sudah aktif di preview.")}>Jelajahi fitur <ArrowUpRight size={14} /></button></div><div className="profile-row"><span className="profile-avatar">NA</span><div><strong>Nadia Anggraini</strong><span>Owner account</span></div><MoreHorizontal size={17} className="profile-more" /></div></div>
+      <div className="sidebar-bottom"><button className={`nav-item ${page === "settings" ? "is-active" : ""}`} onClick={() => { setPage("settings"); setMobileMenu(false); }}><Settings2 size={18} /><span>Settings</span></button><div className="upgrade-card"><span className="upgrade-icon"><Sparkles size={16} /></span><strong>Advanced mode</strong><p>Semua sinyal keuangan di satu tempat.</p><button onClick={() => announce("Semua fitur Advanced sudah aktif di preview.")}>Jelajahi fitur <ArrowUpRight size={14} /></button></div><button className="profile-row profile-row-button" onClick={onLogout} title="Keluar dari akun"><span className="profile-avatar">NA</span><div><strong>Nadia Anggraini</strong><span>Keluar dari akun</span></div><MoreHorizontal size={17} className="profile-more" /></button></div>
     </aside>
 
     <main className="main-content">
@@ -331,6 +370,14 @@ function App() {
     {notice && <div className="toast"><CheckCircle2 size={17} /><span>{notice}</span><button onClick={() => setNotice("")} aria-label="Tutup notifikasi"><X size={14} /></button></div>}
     {showModal && <AddTransactionModal onClose={() => setShowModal(false)} onSave={handleSave} />}
   </div>;
+}
+
+function App() {
+  const sessionQuery = trpc.auth.session.useQuery(undefined, { retry: false, refetchOnWindowFocus: false });
+  const logoutMutation = trpc.auth.logout.useMutation({ onSuccess: () => sessionQuery.refetch() });
+  if (sessionQuery.isLoading) return <div className="auth-loading"><BrandMark /><span>Menyiapkan workspace...</span></div>;
+  if (!sessionQuery.data) return <AuthScreen />;
+  return <FinanceApp onLogout={() => logoutMutation.mutate()} />;
 }
 
 export default App;

@@ -1,11 +1,8 @@
-# LynnZz Finance Advanced — Outcome Todo
 
-- [x] Dashboard terpadu menampilkan cash flow, saldo, pemasukan, pengeluaran, anggaran, tagihan, tabungan/investasi, dan kesehatan keuangan dalam ringkasan KPI serta panel visual yang mudah dipindai.
-- [x] Aplikasi mendukung pemisahan workspace Personal dan Business, dengan workspace aktif yang terlihat jelas dan angka/data demo yang berubah sesuai konteks workspace.
-- [x] Aplikasi menyediakan navigasi Overview, Transactions, Budget, Accounts, Reports, Insights, dan Settings dengan state halaman aktif yang jelas.
-- [x] Aplikasi menyediakan transaksi, kategori, akun, laporan, insight, dan pengaturan yang relevan melalui view dashboard, tabel transaksi, breakdown kategori, budget, accounts, reports, insights, dan settings.
-- [x] Aplikasi memiliki visualisasi interaktif cash flow dan breakdown pengeluaran, filter periode, filter chart, pencarian transaksi, dan aksi cepat.
-- [x] Aplikasi memiliki aksi tambah transaksi dengan modal ringkas, feedback aksi import, dan empty/help states atau panel insight yang membantu pengguna mengambil tindakan.
-- [x] Antarmuka menggunakan Bahasa Indonesia, terasa premium, modern, terpercaya, informasinya padat namun tetap mudah dipahami, serta responsif di desktop dan mobile.
-- [x] Website menyajikan `GET /manus-routes.json` berisi route halaman yang benar dan dapat dibaca sebagai JSON statis.
-- [x] Kode lolos diagnostics TypeScript, `pnpm check`, test yang tersedia, dan build produksi.
+
+## Auth & database
+
+- [x] Pengguna dapat mendaftar dengan nama, email valid, dan password minimal 8 karakter; password disimpan sebagai hash scrypt dan password hash tidak dikirim ke browser.
+- [x] Pengguna dapat login dengan email/password, tetap memiliki opsi Login Manus, serta dapat masuk sebagai tamu.
+- [x] Session user dan guest tersimpan pada database `auth_sessions`, memiliki expiry, menggunakan cookie `HttpOnly; SameSite=None; Secure`, dan dapat diakhiri melalui logout.
+- [x] Database `users` menyimpan identitas akun email dan provider autentikasinya; migration auth tersimpan di folder `drizzle/`.

@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertUser, users, type User } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -86,6 +86,40 @@ export async function getUserByOpenId(openId: string) {
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
 
   return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getUserById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
+  return result[0];
+}
+
+export async function getUserByEmail(email: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  return result[0];
+}
+
+export async function insertEmailUser(input: { email: string; name: string; passwordHash: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const openId = `em_${Buffer.from(input.email).toString("base64url").slice(0, 40)}_${Date.now().toString(36)}`.slice(0, 64);
+  await db.insert(users).values({ openId, email: input.email, name: input.name, passwordHash: input.passwordHash, authProvider: "email", loginMethod: "email", lastSignedIn: new Date() });
+  const created = await getUserByOpenId(openId);
+  if (!created) throw new Error("User gagal dibuat");
+  return created;
+}
+
+export async function touchUser(openId: string) {
+  const db = await getDb();
+  if (db) await db.update(users).set({ lastSignedIn: new Date() }).where(eq(users.openId, openId));
+}
+
+export function createGuestUser(): User {
+  const now = new Date();
+  return { id: -1, openId: "guest", name: "Tamu", email: null, passwordHash: null, authProvider: "guest", loginMethod: "guest", role: "user", createdAt: now, updatedAt: now, lastSignedIn: now };
 }
 
 // TODO: add feature queries here as your schema grows.

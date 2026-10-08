@@ -343,6 +343,8 @@ function buildCronUser(
     openId: userInfo.openId,
     name: userInfo.name || "Manus Scheduled Task",
     email: null,
+    passwordHash: null,
+    authProvider: "manus",
     loginMethod: null,
     role: "user",
     createdAt: now,
