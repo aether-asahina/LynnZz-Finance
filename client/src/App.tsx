@@ -73,7 +73,15 @@ type WorkspaceData = {
   spending: { name: string; value: number; total: number; color: string }[];
   bills: { name: string; date: string; amount: number; icon: ReactNode; tone: string }[];
   transactions: Transaction[];
+  hasData?: boolean;
+  cashReserve?: string;
+  savingRate?: string;
+  debtRatio?: string;
 };
+
+type FinanceTransactionRecord = { id: number; type: "income" | "expense"; merchant: string; category: string; amount: number; occurredAt: string | Date };
+type FinanceSnapshot = { transactions: FinanceTransactionRecord[]; summary: { income: number; expenses: number; cashflow: number; balance: number; categories: { name: string; total: number }[] }; budgets: { amount: number }[]; bills: { id: number; name: string; amount: number; dueAt: string | Date; status: "open" | "paid" }[] };
+type TransactionInput = { type: "income" | "expense"; merchant: string; category: string; amount: number; occurredAt: string; note?: string };
 
 const personalData: WorkspaceData = {
   label: "Personal",
@@ -171,6 +179,22 @@ const formatCompactIDR = (value: number) => {
   return formatIDR(value);
 };
 
+function emptyWorkspaceData(kind: Workspace): WorkspaceData {
+  return { label: kind === "personal" ? "Personal" : "Business", greeting: "Mulai dari satu transaksi", description: "Catat pemasukan dan pengeluaran pertama untuk melihat gambaran keuanganmu.", balance: 0, balanceChange: "Belum ada periode pembanding", income: 0, incomeChange: "Belum ada pemasukan", expenses: 0, expenseChange: "Belum ada pengeluaran", cashflow: 0, cashflowChange: "Belum ada cash flow", health: 0, healthLabel: "Belum ada data", budgetUsed: 0, budgetTotal: 0, chart: [0, 0, 0, 0, 0, 0], chartIncome: [0, 0, 0, 0, 0, 0], chartLabels: ["-", "-", "-", "-", "-", "-"], spending: [], bills: [], transactions: [], hasData: false, cashReserve: "—", savingRate: "—", debtRatio: "—" };
+}
+
+function snapshotToWorkspaceData(kind: Workspace, snapshot?: FinanceSnapshot): WorkspaceData {
+  if (!snapshot) return emptyWorkspaceData(kind);
+  const tx = snapshot.transactions.slice().sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime());
+  const expenseTotal = snapshot.summary.expenses;
+  const spending = snapshot.summary.categories.slice(0, 5).map((item, index) => ({ name: item.name, value: expenseTotal ? Math.round((item.total / expenseTotal) * 100) : 0, total: item.total, color: ["#10251F", "#5EAF87", "#D9F66A", "#E78767", "#7F91D4"][index] }));
+  const bills = snapshot.bills.filter(item => item.status === "open").sort((a, b) => new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime()).slice(0, 4).map(item => ({ name: item.name, date: new Date(item.dueAt).toLocaleDateString("id-ID", { day: "2-digit", month: "short" }), amount: item.amount, icon: <Receipt size={17} />, tone: "mint" }));
+  const hasData = tx.length > 0;
+  const income = snapshot.summary.income;
+  const savingRate = income > 0 ? `${Math.round((snapshot.summary.cashflow / income) * 100)}%` : "—";
+  return { label: kind === "personal" ? "Personal" : "Business", greeting: hasData ? "Ringkasan keuanganmu" : "Mulai dari satu transaksi", description: hasData ? "Semua angka di bawah berasal dari transaksi yang kamu catat." : "Catat pemasukan dan pengeluaran pertama untuk melihat gambaran keuanganmu.", balance: snapshot.summary.balance, balanceChange: "Saldo berjalan", income, incomeChange: "Periode berjalan", expenses: expenseTotal, expenseChange: "Periode berjalan", cashflow: snapshot.summary.cashflow, cashflowChange: "Periode berjalan", health: hasData ? Math.max(0, Math.min(100, 50 + Math.round((snapshot.summary.cashflow / Math.max(income, 1)) * 50))) : 0, healthLabel: hasData ? "Berdasarkan data" : "Belum ada data", budgetUsed: expenseTotal, budgetTotal: snapshot.budgets.reduce((sum, item) => sum + item.amount, 0), chart: [0, 0, 0, 0, 0, snapshot.summary.expenses], chartIncome: [0, 0, 0, 0, 0, snapshot.summary.income], chartLabels: ["-", "-", "-", "-", "-", "Kini"], spending, bills, transactions: tx.map(item => ({ merchant: item.merchant, category: item.category, date: new Date(item.occurredAt).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }), amount: item.amount, type: item.type, icon: item.type === "income" ? <ArrowUpRight size={17} /> : <ArrowDownRight size={17} />, tone: item.type === "income" ? "mint" : "peach" })), hasData, cashReserve: hasData ? "Tersedia dari akun" : "—", savingRate, debtRatio: "Belum tersedia" };
+}
+
 function BrandMark({ compact = false }: { compact?: boolean }) {
   return (
     <div className={`brand-lockup ${compact ? "brand-lockup--compact" : ""}`}>
@@ -246,8 +270,8 @@ function Overview({ data, workspace, onAddTransaction, onNotice }: { data: Works
         </article>
         <article className="panel health-panel">
           <div className="panel-heading"><div><p className="eyebrow">FINANCIAL HEALTH</p><h2>Kesehatan keuangan</h2></div><button className="icon-button" aria-label="Lihat detail kesehatan" onClick={() => onNotice("Detail kesehatan keuangan akan segera tersedia.")}><ChevronRight size={18} /></button></div>
-          <div className="health-score"><div className="score-ring" style={{ "--score": `${data.health * 3.6}deg` } as React.CSSProperties}><div><strong>{data.health}</strong><span>/ 100</span></div></div><div><span className="status-pill status-pill--good"><CheckCircle2 size={14} /> {data.healthLabel}</span><p>Skor naik 6 poin sejak bulan lalu. Kebiasaan cash flow-mu konsisten.</p></div></div>
-          <div className="health-list"><div><span>Cash reserve</span><strong>4,2 bulan</strong></div><div><span>Saving rate</span><strong>49,9%</strong></div><div><span>Debt ratio</span><strong>12,4%</strong></div></div>
+          <div className="health-score"><div className="score-ring" style={{ "--score": `${data.health * 3.6}deg` } as React.CSSProperties}><div><strong>{data.hasData ? data.health : "—"}</strong><span>/ 100</span></div></div><div><span className="status-pill status-pill--good"><CheckCircle2 size={14} /> {data.healthLabel}</span><p>{data.hasData ? "Skor ini dihitung dari data transaksi yang kamu catat." : "Tambahkan transaksi untuk menghitung kesehatan keuangan."}</p></div></div>
+          <div className="health-list"><div><span>Cash reserve</span><strong>{data.cashReserve}</strong></div><div><span>Saving rate</span><strong>{data.savingRate}</strong></div><div><span>Debt ratio</span><strong>{data.debtRatio}</strong></div></div>
           <button className="text-button" onClick={() => onNotice("Membuka rekomendasi kesehatan keuangan.")}>Lihat rekomendasi <ArrowUpRight size={15} /></button>
         </article>
       </section>
@@ -256,7 +280,7 @@ function Overview({ data, workspace, onAddTransaction, onNotice }: { data: Works
         <article className="panel spending-panel">
           <div className="panel-heading"><div><p className="eyebrow">SPENDING</p><h2>Ke mana uangmu pergi?</h2></div><button className="icon-button" aria-label="Filter pengeluaran" onClick={() => onNotice("Filter kategori pengeluaran aktif.")}><SlidersHorizontal size={17} /></button></div>
           <div className="spending-total"><strong>{formatCompactIDR(data.expenses)}</strong><span>Pengeluaran bulan ini</span></div>
-          <div className="spending-bars">{data.spending.map((item) => <div className="spending-item" key={item.name}><div className="spending-label"><span><i style={{ background: item.color }} />{item.name}</span><strong>{item.value}%</strong></div><ProgressBar value={item.value * 2.45} color={item.name === "Lifestyle" || item.name === "Marketing" ? "peach" : item.name === "Mobilitas" ? "lime" : "mint"} /><div className="spending-meta"><span>{formatCompactIDR(item.total)}</span><span>{item.value}% dari total</span></div></div>)}</div>
+          <div className="spending-bars">{data.spending.length ? data.spending.map((item) => <div className="spending-item" key={item.name}><div className="spending-label"><span><i style={{ background: item.color }} />{item.name}</span><strong>{item.value}%</strong></div><ProgressBar value={item.value} color={item.name === "Lifestyle" || item.name === "Marketing" ? "peach" : item.name === "Mobilitas" ? "lime" : "mint"} /><div className="spending-meta"><span>{formatCompactIDR(item.total)}</span><span>{item.value}% dari total</span></div></div>) : <div className="empty-state">Belum ada pengeluaran tercatat.</div>}</div>
           <button className="text-button" onClick={() => onNotice("Laporan kategori pengeluaran dipilih.")}>Lihat semua kategori <ArrowUpRight size={15} /></button>
         </article>
         <article className="panel budget-panel">
@@ -269,7 +293,7 @@ function Overview({ data, workspace, onAddTransaction, onNotice }: { data: Works
         </article>
         <article className="panel bills-panel">
           <div className="panel-heading"><div><p className="eyebrow">UPCOMING</p><h2>Tagihan mendatang</h2></div><button className="icon-button" aria-label="Lihat semua tagihan" onClick={() => onNotice("Menampilkan semua tagihan mendatang.")}><ChevronRight size={18} /></button></div>
-          <div className="bill-list">{data.bills.map((bill) => <div className="bill-row" key={bill.name}><span className={`bill-icon bill-icon--${bill.tone}`}>{bill.icon}</span><div className="bill-detail"><strong>{bill.name}</strong><span>{bill.date}</span></div><strong className="bill-amount">{formatCompactIDR(bill.amount)}</strong></div>)}</div>
+          <div className="bill-list">{data.bills.length ? data.bills.map((bill) => <div className="bill-row" key={bill.name}><span className={`bill-icon bill-icon--${bill.tone}`}>{bill.icon}</span><div className="bill-detail"><strong>{bill.name}</strong><span>{bill.date}</span></div><strong className="bill-amount">{formatCompactIDR(bill.amount)}</strong></div>) : <div className="empty-state">Belum ada tagihan terbuka.</div>}</div>
           <div className="bill-note"><CalendarDays size={16} /><span>Total tagihan 30 hari ke depan <strong>{formatCompactIDR(data.bills.reduce((sum, bill) => sum + bill.amount, 0))}</strong></span></div>
         </article>
       </section>
@@ -283,7 +307,7 @@ function Overview({ data, workspace, onAddTransaction, onNotice }: { data: Works
 }
 
 function TransactionTable({ transactions }: { transactions: Transaction[] }) {
-  return <div className="table-wrap"><table><thead><tr><th>Transaksi</th><th>Kategori</th><th>Tanggal</th><th className="align-right">Jumlah</th><th /></tr></thead><tbody>{transactions.map((transaction) => <tr key={`${transaction.merchant}-${transaction.date}`}><td><div className="transaction-name"><span className={`transaction-icon transaction-icon--${transaction.tone}`}>{transaction.icon}</span><strong>{transaction.merchant}</strong></div></td><td><span className="category-chip">{transaction.category}</span></td><td className="muted-text">{transaction.date}</td><td className={`align-right amount amount--${transaction.type}`}>{transaction.type === "income" ? "+" : "−"}{formatCompactIDR(transaction.amount)}</td><td><button className="icon-button icon-button--muted" aria-label={`Opsi ${transaction.merchant}`}><MoreHorizontal size={17} /></button></td></tr>)}</tbody></table></div>;
+  return <div className="table-wrap">{transactions.length ? <table><thead><tr><th>Transaksi</th><th>Kategori</th><th>Tanggal</th><th className="align-right">Jumlah</th><th /></tr></thead><tbody>{transactions.map((transaction) => <tr key={`${transaction.merchant}-${transaction.date}`}><td><div className="transaction-name"><span className={`transaction-icon transaction-icon--${transaction.tone}`}>{transaction.icon}</span><strong>{transaction.merchant}</strong></div></td><td><span className="category-chip">{transaction.category}</span></td><td className="muted-text">{transaction.date}</td><td className={`align-right amount amount--${transaction.type}`}>{transaction.type === "income" ? "+" : "−"}{formatCompactIDR(transaction.amount)}</td><td><button className="icon-button icon-button--muted" aria-label={`Opsi ${transaction.merchant}`}><MoreHorizontal size={17} /></button></td></tr>)}</tbody></table> : <div className="empty-state empty-state--table">Belum ada transaksi. Tambahkan pemasukan atau pengeluaran pertama.</div>}</div>;
 }
 
 function PagePlaceholder({ page, data, onNotice }: { page: Page; data: WorkspaceData; onNotice: (message: string) => void }) {
@@ -296,13 +320,17 @@ function PagePlaceholder({ page, data, onNotice }: { page: Page; data: Workspace
     settings: { eyebrow: "WORKSPACE", title: "Pengaturan", description: "Atur preferensi workspace dan cara LynnZz bekerja untukmu.", icon: <Settings2 size={22} /> },
   };
   const current = config[page as Exclude<Page, "overview">];
-  return <div className="page-stack"><section className="subpage-hero"><div className="subpage-icon">{current.icon}</div><div><p className="eyebrow eyebrow--lime">{current.eyebrow}</p><h1>{current.title}</h1><p className="lede">{current.description}</p></div><button className="button button--primary" onClick={() => onNotice(`${current.title} siap dikembangkan dengan data terhubung.`)}><Plus size={17} /> Tambah baru</button></section><section className="dashboard-grid dashboard-grid--two"><article className="panel placeholder-main"><div className="panel-heading"><div><p className="eyebrow">{data.label.toUpperCase()}</p><h2>{page === "transactions" ? "Transaksi terbaru" : page === "budget" ? "Ringkasan budget" : page === "accounts" ? "Total aset" : page === "reports" ? "Ringkasan bulan ini" : page === "insights" ? "Rekomendasi untukmu" : "Workspace preference"}</h2></div><button className="button button--secondary" onClick={() => onNotice("Filter diterapkan.")}><SlidersHorizontal size={16} /> Filter</button></div>{page === "transactions" ? <TransactionTable transactions={data.transactions} /> : <div className="placeholder-content"><div className="placeholder-stat"><span>{page === "accounts" ? "Nilai bersih" : page === "reports" ? "Net cash flow" : page === "insights" ? "Peluang ditemukan" : "Progress"}</span><strong>{page === "accounts" ? formatCompactIDR(data.balance) : page === "reports" ? formatCompactIDR(data.cashflow) : page === "insights" ? "04" : page === "budget" ? "66%" : "Aktif"}</strong></div><div className="placeholder-lines"><span /><span /><span /><span /><span /></div><button className="text-button" onClick={() => onNotice("Detail sedang disiapkan.")}>Lihat detail <ArrowUpRight size={15} /></button></div>}</article><article className="panel side-note"><span className="side-note__icon"><Sparkles size={20} /></span><p className="eyebrow">LYNNZZ TIP</p><h3>{page === "insights" ? "Jadikan pola sebagai kebiasaan." : "Lebih jelas, lebih cepat."}</h3><p>Gunakan workspace {data.label} untuk memisahkan konteks uang pribadi dan operasional tanpa kehilangan gambaran besar.</p><button className="button button--outline button--full" onClick={() => onNotice("Insight disimpan untuk dibaca nanti.")}>Simpan insight</button></article></section></div>;
+  return <div className="page-stack"><section className="subpage-hero"><div className="subpage-icon">{current.icon}</div><div><p className="eyebrow eyebrow--lime">{current.eyebrow}</p><h1>{current.title}</h1><p className="lede">{current.description}</p></div><button className="button button--secondary" onClick={() => onNotice("Modul ini belum memiliki data tersimpan.")}><SlidersHorizontal size={16} /> Filter</button></section><section className="dashboard-grid dashboard-grid--two"><article className="panel placeholder-main"><div className="panel-heading"><div><p className="eyebrow">{data.label.toUpperCase()}</p><h2>{page === "transactions" ? "Transaksi terbaru" : page === "budget" ? "Ringkasan budget" : page === "accounts" ? "Total aset" : page === "reports" ? "Ringkasan bulan ini" : page === "insights" ? "Rekomendasi untukmu" : "Workspace preference"}</h2></div></div>{page === "transactions" ? <TransactionTable transactions={data.transactions} /> : <div className="placeholder-content"><div className="placeholder-stat"><span>{page === "accounts" ? "Nilai bersih" : page === "reports" ? "Net cash flow" : page === "insights" ? "Peluang ditemukan" : "Data tersimpan"}</span><strong>{page === "accounts" ? formatCompactIDR(data.balance) : page === "reports" ? formatCompactIDR(data.cashflow) : page === "insights" ? (data.hasData ? "Tersedia" : "—") : page === "budget" ? (data.budgetTotal ? formatCompactIDR(data.budgetTotal) : "—") : "—"}</strong></div><div className="empty-state">Belum ada data tersimpan untuk modul ini.</div></div>}</article><article className="panel side-note"><span className="side-note__icon"><Sparkles size={20} /></span><p className="eyebrow">LYNNZZ TIP</p><h3>{page === "insights" ? "Insight muncul dari kebiasaan nyata." : "Mulai dari data yang benar."}</h3><p>Tambahkan data pada workspace {data.label} untuk mengisi modul ini secara bertahap.</p></article></section></div>;
 }
 
-function AddTransactionModal({ onClose, onSave }: { onClose: () => void; onSave: (message: string) => void }) {
-  const [type, setType] = useState("Pengeluaran");
-  const submit = (event: FormEvent<HTMLFormElement>) => { event.preventDefault(); onSave(`${type} baru berhasil ditambahkan.`); };
-  return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><div className="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div className="modal-heading"><div><p className="eyebrow eyebrow--lime">QUICK ACTION</p><h2 id="modal-title">Tambah transaksi</h2></div><button className="icon-button" onClick={onClose} aria-label="Tutup modal"><X size={19} /></button></div><p className="modal-intro">Catat pergerakan uang tanpa meninggalkan overview.</p><form onSubmit={submit}><label>Jenis transaksi<select value={type} onChange={(event) => setType(event.target.value)}><option>Pemasukan</option><option>Pengeluaran</option><option>Transfer</option></select></label><label>Deskripsi<input required placeholder="Contoh: Belanja bulanan" /></label><div className="form-grid"><label>Jumlah<input required type="number" min="0" placeholder="0" /></label><label>Tanggal<input required type="date" defaultValue="2026-10-08" /></label></div><label>Kategori<select defaultValue="Makanan"><option>Makanan</option><option>Belanja</option><option>Tagihan</option><option>Transportasi</option><option>Gaji</option></select></label><div className="modal-actions"><button type="button" className="button button--secondary" onClick={onClose}>Batal</button><button type="submit" className="button button--primary"><CheckCircle2 size={16} /> Simpan transaksi</button></div></form></div></div>;
+function AddTransactionModal({ onClose, onSave }: { onClose: () => void; onSave: (input: TransactionInput) => void }) {
+  const [type, setType] = useState<"income" | "expense">("expense");
+  const [merchant, setMerchant] = useState("");
+  const [amount, setAmount] = useState("");
+  const [occurredAt, setOccurredAt] = useState(new Date().toISOString().slice(0, 10));
+  const [category, setCategory] = useState("Makanan");
+  const submit = (event: FormEvent<HTMLFormElement>) => { event.preventDefault(); onSave({ type, merchant, amount: Number(amount), occurredAt, category }); };
+  return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><div className="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div className="modal-heading"><div><p className="eyebrow eyebrow--lime">QUICK ACTION</p><h2 id="modal-title">Tambah transaksi</h2></div><button className="icon-button" onClick={onClose} aria-label="Tutup modal"><X size={19} /></button></div><p className="modal-intro">Data ini akan tersimpan di workspace aktif.</p><form onSubmit={submit}><label>Jenis transaksi<select value={type} onChange={(event) => setType(event.target.value as "income" | "expense")}><option value="income">Pemasukan</option><option value="expense">Pengeluaran</option></select></label><label>Deskripsi<input required value={merchant} onChange={(event) => setMerchant(event.target.value)} placeholder="Contoh: Belanja bulanan" /></label><div className="form-grid"><label>Jumlah<input required value={amount} onChange={(event) => setAmount(event.target.value)} type="number" min="1" placeholder="0" /></label><label>Tanggal<input required value={occurredAt} onChange={(event) => setOccurredAt(event.target.value)} type="date" /></label></div><label>Kategori<input required value={category} onChange={(event) => setCategory(event.target.value)} placeholder="Makanan, Gaji, Tagihan..." /></label><div className="modal-actions"><button type="button" className="button button--secondary" onClick={onClose}>Batal</button><button type="submit" className="button button--primary"><CheckCircle2 size={16} /> Simpan transaksi</button></div></form></div></div>;
 }
 
 function AuthScreen() {
@@ -384,21 +412,24 @@ function StaticAuthScreen({ onAuthenticated }: { onAuthenticated: (account: Stat
 
 function GithubPagesApp() {
   const [session, setSession] = useState<StaticAccount | null>(() => { try { return JSON.parse(localStorage.getItem(STATIC_SESSION_KEY) || "null"); } catch { return null; } });
+  const load = (kind: Workspace): FinanceSnapshot => { try { return JSON.parse(localStorage.getItem(`lynnzz_github_transactions_${kind}_v1`) || "{\"transactions\":[],\"summary\":{\"income\":0,\"expenses\":0,\"cashflow\":0,\"balance\":0,\"categories\":[]},\"budgets\":[],\"bills\":[]}"); } catch { return { transactions: [], summary: { income: 0, expenses: 0, cashflow: 0, balance: 0, categories: [] }, budgets: [], bills: [] }; } };
+  const [snapshots, setSnapshots] = useState<Record<Workspace, FinanceSnapshot>>(() => ({ personal: load("personal"), business: load("business") }));
   if (!session) return <StaticAuthScreen onAuthenticated={setSession} />;
-  return <FinanceApp onLogout={() => { localStorage.removeItem(STATIC_SESSION_KEY); setSession(null); }} />;
+  const createTransaction = async (kind: Workspace, input: TransactionInput) => { const current = snapshots[kind]; const transaction = { id: Date.now(), ...input, occurredAt: input.occurredAt }; const transactions = [transaction, ...current.transactions]; const income = transactions.filter(item => item.type === "income").reduce((sum, item) => sum + item.amount, 0); const expenses = transactions.filter(item => item.type === "expense").reduce((sum, item) => sum + item.amount, 0); const categories = Array.from(transactions.filter(item => item.type === "expense").reduce((map, item) => map.set(item.category, (map.get(item.category) ?? 0) + item.amount), new Map<string, number>()), ([name, total]) => ({ name, total })); const next = { ...current, transactions, summary: { income, expenses, cashflow: income - expenses, balance: income - expenses, categories } }; localStorage.setItem(`lynnzz_github_transactions_${kind}_v1`, JSON.stringify(next)); setSnapshots(prev => ({ ...prev, [kind]: next })); };
+  return <FinanceApp liveData={{ personal: snapshotToWorkspaceData("personal", snapshots.personal), business: snapshotToWorkspaceData("business", snapshots.business) }} onCreateTransaction={createTransaction} onLogout={() => { localStorage.removeItem(STATIC_SESSION_KEY); setSession(null); }} />;
 }
 
-function FinanceApp({ onLogout }: { onLogout: () => void }) {
+function FinanceApp({ onLogout, liveData, onCreateTransaction }: { onLogout: () => void; liveData: Record<Workspace, WorkspaceData>; onCreateTransaction: (kind: Workspace, input: TransactionInput) => Promise<void> }) {
   const [workspace, setWorkspace] = useState<Workspace>("personal");
   const [page, setPage] = useState<Page>("overview");
   const [mobileMenu, setMobileMenu] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [notice, setNotice] = useState("");
   const [search, setSearch] = useState("");
-  const data = workspace === "personal" ? personalData : businessData;
+  const data = liveData[workspace];
   const filteredTransactions = useMemo(() => data.transactions.filter((transaction) => `${transaction.merchant} ${transaction.category}`.toLowerCase().includes(search.toLowerCase())), [data, search]);
   const announce = (message: string) => { setNotice(message); window.setTimeout(() => setNotice(""), 3000); };
-  const handleSave = (message: string) => { setShowModal(false); announce(message); };
+  const handleSave = async (input: TransactionInput) => { await onCreateTransaction(workspace, input); setShowModal(false); announce("Transaksi berhasil disimpan."); };
 
   return <div className="app-shell">
     <aside className={`sidebar ${mobileMenu ? "sidebar--open" : ""}`}>
@@ -421,9 +452,14 @@ function FinanceApp({ onLogout }: { onLogout: () => void }) {
 function ServerApp() {
   const sessionQuery = trpc.auth.session.useQuery(undefined, { retry: false, refetchOnWindowFocus: false });
   const logoutMutation = trpc.auth.logout.useMutation({ onSuccess: () => sessionQuery.refetch() });
+  const personalQuery = trpc.finance.dashboard.useQuery({ kind: "personal" }, { enabled: Boolean(sessionQuery.data), retry: false });
+  const businessQuery = trpc.finance.dashboard.useQuery({ kind: "business" }, { enabled: Boolean(sessionQuery.data), retry: false });
+  const createMutation = trpc.finance.createTransaction.useMutation();
   if (sessionQuery.isLoading) return <div className="auth-loading"><BrandMark /><span>Menyiapkan workspace...</span></div>;
   if (!sessionQuery.data) return <AuthScreen />;
-  return <FinanceApp onLogout={() => logoutMutation.mutate()} />;
+  if (personalQuery.isLoading || businessQuery.isLoading) return <div className="auth-loading"><BrandMark /><span>Memuat data keuangan...</span></div>;
+  const createTransaction = async (kind: Workspace, input: TransactionInput) => { await createMutation.mutateAsync({ kind, ...input }); await Promise.all([personalQuery.refetch(), businessQuery.refetch()]); };
+  return <FinanceApp liveData={{ personal: snapshotToWorkspaceData("personal", personalQuery.data), business: snapshotToWorkspaceData("business", businessQuery.data) }} onCreateTransaction={createTransaction} onLogout={() => logoutMutation.mutate()} />;
 }
 
 function App() {

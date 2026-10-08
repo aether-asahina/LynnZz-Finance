@@ -200,3 +200,5 @@ h3 { color: var(--ink); font-size: 20px; line-height: 1.25; letter-spacing: -.04
 .profile-row-button:hover { background: rgba(255,255,255,.05); border-radius: 9px; }
 
 .static-guest-button { width: 100%; min-height: 42px; }
+
+.empty-state { padding: 18px 4px; color: var(--muted); font-size: 12px; line-height: 1.5; }.empty-state--table { padding: 38px 18px; text-align: center; border: 1px dashed var(--line); border-radius: 10px; margin: 8px 0; }

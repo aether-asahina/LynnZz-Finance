@@ -1,9 +1,7 @@
 
 
-## Update autentikasi dan persistence
-- Menambahkan pendaftaran email dengan nama, email, dan password minimal 8 karakter menggunakan hashing `scrypt`; password hash tidak pernah dikirim ke browser.
-- Menambahkan login email/password, Login Manus OAuth yang tetap tersedia, serta Login sebagai tamu.
-- Menambahkan cookie `lynnzz_session` dengan `HttpOnly`, `SameSite=None`, dan `Secure` untuk Preview HTTPS; token mentah tidak disimpan di database, hanya SHA-256 hash-nya.
-- Menambahkan tabel `auth_sessions` untuk session user/tamu dengan expiry; akun email disimpan pada tabel `users` beserta `passwordHash` dan `authProvider`.
-- Logout menghapus session database dan membersihkan cookie aplikasi maupun cookie Manus.
-- Data finance pada dashboard masih berupa demo lokal; tabel domain transaksi/workspace dapat ditambahkan berikutnya setelah model data bisnis final disepakati.
+## Update persistence finance
+
+Dashboard sekarang tidak lagi menggunakan angka contoh pada jalur aplikasi aktif. Database menambahkan tabel `finance_workspaces`, `finance_transactions`, `finance_budgets`, dan `finance_bills`. Workspace Personal dan Business dibuat otomatis saat user pertama kali membuka dashboard, tetapi seluruh workspace dimulai kosong. Ringkasan saldo, pemasukan, pengeluaran, cash flow, kategori, dan transaksi terbaru dihitung dari baris transaksi milik user dan workspace aktif.
+
+Endpoint tRPC `finance.dashboard`, `finance.createTransaction`, dan `finance.deleteTransaction` menerapkan row ownership melalui user dan workspace. Mode GitHub Pages menggunakan localStorage sebagai persistence browser-only karena Pages tidak menjalankan Express/MySQL; tidak ada angka seed atau transaksi demo di bundle aktif.

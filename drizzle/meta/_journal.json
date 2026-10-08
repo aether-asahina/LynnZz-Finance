@@ -15,6 +15,13 @@
       "when": 1791459695997,
       "tag": "0001_rare_baron_zemo",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1791463420661,
+      "tag": "0002_stiff_wild_child",
+      "breakpoints": true
     }
   ]
 }

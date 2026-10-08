@@ -1,7 +1,7 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, router } from "./_core/trpc";
+import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { clearAppSession, authenticateEmail, createEmailUser, setAppSession } from "./_core/appAuth";
 import * as db from "./db";
 import { TRPCError } from "@trpc/server";
@@ -48,6 +48,36 @@ export const appRouter = router({
       return {
         success: true,
       } as const;
+    }),
+  }),
+
+  finance: router({
+    dashboard: protectedProcedure.input(z.object({ kind: z.enum(["personal", "business"]) })).query(async ({ ctx, input }) => {
+      const workspace = await db.getFinanceWorkspace(ctx.user.id, input.kind);
+      if (!workspace) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Workspace gagal dibuat." });
+      const [transactions, budgets, bills] = await Promise.all([
+        db.listFinanceTransactions(workspace.id),
+        db.listFinanceBudgets(workspace.id),
+        db.listFinanceBills(workspace.id),
+      ]);
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const monthTransactions = transactions.filter(item => item.occurredAt >= monthStart);
+      const income = monthTransactions.filter(item => item.type === "income").reduce((sum, item) => sum + item.amount, 0);
+      const expenses = monthTransactions.filter(item => item.type === "expense").reduce((sum, item) => sum + item.amount, 0);
+      const categoryTotals = new Map<string, number>();
+      monthTransactions.filter(item => item.type === "expense").forEach(item => categoryTotals.set(item.category, (categoryTotals.get(item.category) ?? 0) + item.amount));
+      return { workspace, transactions, budgets, bills, summary: { income, expenses, cashflow: income - expenses, balance: transactions.reduce((sum, item) => sum + (item.type === "income" ? item.amount : -item.amount), 0), categories: Array.from(categoryTotals, ([name, total]) => ({ name, total })).sort((a, b) => b.total - a.total) } };
+    }),
+    createTransaction: protectedProcedure.input(z.object({ kind: z.enum(["personal", "business"]), type: z.enum(["income", "expense"]), merchant: z.string().min(1).max(160), category: z.string().min(1).max(80), amount: z.number().int().positive(), occurredAt: z.string(), note: z.string().max(500).optional() })).mutation(async ({ ctx, input }) => {
+      const workspace = await db.getFinanceWorkspace(ctx.user.id, input.kind);
+      if (!workspace) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Workspace gagal dibuat." });
+      return db.createFinanceTransaction({ workspaceId: workspace.id, type: input.type, merchant: input.merchant, category: input.category, amount: input.amount, occurredAt: new Date(input.occurredAt), note: input.note });
+    }),
+    deleteTransaction: protectedProcedure.input(z.object({ kind: z.enum(["personal", "business"]), id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+      const workspace = await db.getFinanceWorkspace(ctx.user.id, input.kind);
+      if (workspace) await db.deleteFinanceTransaction(workspace.id, input.id);
+      return { success: true } as const;
     }),
   }),
 

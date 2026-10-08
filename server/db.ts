@@ -1,6 +1,6 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, type User } from "../drizzle/schema";
+import { InsertUser, users, type User, financeWorkspaces, financeTransactions, financeBudgets, financeBills } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -120,6 +120,56 @@ export async function touchUser(openId: string) {
 export function createGuestUser(): User {
   const now = new Date();
   return { id: -1, openId: "guest", name: "Tamu", email: null, passwordHash: null, authProvider: "guest", loginMethod: "guest", role: "user", createdAt: now, updatedAt: now, lastSignedIn: now };
+}
+
+export async function getOrCreateFinanceWorkspaces(ownerId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  let rows = await db.select().from(financeWorkspaces).where(eq(financeWorkspaces.ownerId, ownerId));
+  if (rows.length === 0) {
+    await db.insert(financeWorkspaces).values([
+      { ownerId, kind: "personal", name: "Personal", currency: "IDR" },
+      { ownerId, kind: "business", name: "Business", currency: "IDR" },
+    ]);
+    rows = await db.select().from(financeWorkspaces).where(eq(financeWorkspaces.ownerId, ownerId));
+  }
+  return rows;
+}
+
+export async function getFinanceWorkspace(ownerId: number, kind: "personal" | "business") {
+  const rows = await getOrCreateFinanceWorkspaces(ownerId);
+  return rows.find(row => row.kind === kind) ?? rows[0];
+}
+
+export async function listFinanceTransactions(workspaceId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  return db.select().from(financeTransactions).where(eq(financeTransactions.workspaceId, workspaceId));
+}
+
+export async function createFinanceTransaction(input: typeof financeTransactions.$inferInsert) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const result = await db.insert(financeTransactions).values(input);
+  const rows = await db.select().from(financeTransactions).where(eq(financeTransactions.id, result[0].insertId));
+  return rows[0];
+}
+
+export async function deleteFinanceTransaction(workspaceId: number, id: number) {
+  const db = await getDb();
+  if (db) await db.delete(financeTransactions).where(and(eq(financeTransactions.workspaceId, workspaceId), eq(financeTransactions.id, id)));
+}
+
+export async function listFinanceBudgets(workspaceId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  return db.select().from(financeBudgets).where(eq(financeBudgets.workspaceId, workspaceId));
+}
+
+export async function listFinanceBills(workspaceId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  return db.select().from(financeBills).where(eq(financeBills.workspaceId, workspaceId));
 }
 
 // TODO: add feature queries here as your schema grows.
