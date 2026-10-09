@@ -77,7 +77,9 @@ export async function getAppSession(req: Request): Promise<AppSession | null> {
     return null;
   }
   if (session.isGuest || !session.userId) {
-    return { isGuest: true, user: db.createGuestUser() };
+    // Tiap sesi tamu memakai id negatif unik, supaya workspace tamu tidak dipakai bersama
+    // oleh semua pengunjung (sebelumnya semua tamu berbagi ownerId -1).
+    return { isGuest: true, user: { ...db.createGuestUser(), id: -session.id } };
   }
   const user = await db.getUserById(session.userId);
   return user ? { isGuest: false, user } : null;
